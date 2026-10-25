@@ -135,10 +135,18 @@ window.Sound = (() => {
   }
 
   // 土の上を滑る「ザザーッ」
-  function slide(level = 1) {
-    noiseShot({ dur: 0.12, f: 500, f2: 1400, q: 1, g: 0.12 * level, attack: 0.03 });
-    noiseShot({ t: 0.12, dur: 0.6, type: 'lowpass', f: 1400, f2: 300, g: 0.45 * level, attack: 0.02 });
-    noiseShot({ t: 0.14, dur: 0.5, type: 'bandpass', f: 3000, f2: 1200, q: 0.7, g: 0.12 * level, attack: 0.02 });
+  // at: 地面に着いて滑り始めるまでの時間
+  function slide(level = 1, at = 0.12) {
+    noiseShot({ dur: 0.12 + at * 0.5, f: 500, f2: 1600, q: 1, g: 0.14 * level, attack: 0.03 });
+    noiseShot({ t: at, dur: 0.6, type: 'lowpass', f: 1400, f2: 300, g: 0.45 * level, attack: 0.02 });
+    noiseShot({ t: at + 0.02, dur: 0.5, type: 'bandpass', f: 3000, f2: 1200, q: 0.7, g: 0.12 * level, attack: 0.02 });
+  }
+
+  // 飛び込んで着地した「ドサッ」
+  function land(big) {
+    noiseShot({ dur: 0.18, type: 'lowpass', f: 600, f2: 150, g: big ? 0.7 : 0.45, attack: 0.004 });
+    tone({ dur: 0.15, f: 110, f2: 50, g: big ? 0.35 : 0.2 });
+    noiseShot({ t: 0.02, dur: 0.5, type: 'lowpass', f: 1600, f2: 300, g: big ? 0.35 : 0.25, attack: 0.01 });
   }
 
   // タッチ / 判定の瞬間
@@ -364,6 +372,6 @@ window.Sound = (() => {
     init, update, setMuted, suspend, resume,
     get muted() { return muted; },
     get ready() { return !!AC && AC.state === 'running'; },
-    glove, whoosh, slide, tag, crowdGo, cheer, sigh, horn, launch, boom, fanfare,
+    glove, whoosh, slide, land, tag, crowdGo, cheer, sigh, horn, launch, boom, fanfare,
   };
 })();

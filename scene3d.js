@@ -609,7 +609,7 @@ window.Scene3D = (() => {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0a0d1c);
     scene.fog = new THREE.Fog(0x141a33, 180, 520);
-    camera = new THREE.PerspectiveCamera(58, W / H, 0.1, 1200);
+    camera = new THREE.PerspectiveCamera(30, W / H, 0.1, 1200);
 
     const sky = new THREE.Mesh(new THREE.SphereGeometry(800, 24, 16), new THREE.MeshBasicMaterial({ map: skyTexture(), side: THREE.BackSide, fog: false }));
     scene.add(sky);
@@ -647,6 +647,7 @@ window.Scene3D = (() => {
     buildPlayers();
     buildBall();
     buildFireworks();
+    buildDust();
     prewarm();
     ready = true;
   }
@@ -682,6 +683,49 @@ window.Scene3D = (() => {
     camera.aspect = cssW / cssH;
     camera.updateProjectionMatrix();
     renderer.setSize(cssW, cssH, false);
+  }
+
+  // ---------- 土けむり(スライディング) ----------
+  const DUST_N = 48, dust = [];
+  let dustAcc = 0, lastLand = -1;
+  function buildDust() {
+    for (let i = 0; i < DUST_N; i++) {
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xc89a68, transparent: true, depthWrite: false, opacity: 0 }));
+      sp.visible = false;
+      scene.add(sp);
+      dust.push({ sp, t: 0, life: 0, vx: 0, vy: 0, vz: 0, x: 0, y: 0, z: 0, s: 1 });
+    }
+  }
+  function spawnDust(x, y, n, power) {
+    for (let k = 0; k < n; k++) {
+      let d = dust.find((q) => q.t >= q.life);
+      if (!d) d = dust.reduce((a, q) => (q.t / q.life > a.t / a.life ? q : a));
+      const a = Math.random() * Math.PI * 2, sp = (0.6 + Math.random()) * power;
+      Object.assign(d, { t: 0, life: 0.5 + Math.random() * 0.5, x: x + (Math.random() - 0.5) * 0.5, y: y + (Math.random() - 0.5) * 0.5, z: 0.15,
+        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 0.6 + Math.random() * power * 0.6, s: 0.5 + Math.random() * 0.5 * power });
+      d.sp.visible = true;
+    }
+  }
+  function updateDust(dt, rn, state) {
+    if (rn && state.landed && state.landed.t !== lastLand) {
+      lastLand = state.landed.t;
+      spawnDust(state.landed.x, state.landed.y, state.landed.big ? 14 : 8, state.landed.big ? 2.2 : 1.5);
+    }
+    // 滑っている間は土けむりを上げ続ける
+    if (rn && (rn.mode === 'head' || rn.mode === 'feet') && !(rn.air > 0) && rn.v > 1.5) {
+      dustAcc += dt;
+      while (dustAcc > 0.035) { dustAcc -= 0.035; spawnDust(rn.x, rn.y, 2, rn.v / 6); }
+    }
+    for (const d of dust) {
+      if (d.t >= d.life) { d.sp.visible = false; continue; }
+      d.t += dt;
+      d.x += d.vx * dt; d.y += d.vy * dt; d.z += d.vz * dt;
+      d.vx *= Math.exp(-3 * dt); d.vy *= Math.exp(-3 * dt); d.vz *= Math.exp(-2 * dt);
+      const u = d.t / d.life;
+      d.sp.position.set(d.x, d.z, -d.y);
+      d.sp.scale.setScalar(d.s * (0.8 + 2.2 * u));
+      d.sp.material.opacity = 0.55 * (1 - u);
+    }
   }
 
   // ---------- 毎フレーム ----------
@@ -724,7 +768,7 @@ window.Scene3D = (() => {
   function poseRunner(rn, time) {
     const r = runnerRig;
     resetPose(r);
-    place(r, rn.x, rn.y, rn.face);
+    place(r, rn.x, rn.y, rn.face, rn.z || 0);
     runnerShadow.scale.setScalar(1);
     const p = clamp01(rn.prog || 0);
     switch (rn.mode) {
@@ -752,6 +796,8 @@ window.Scene3D = (() => {
           r.armL.rotation.x += c; r.armR.rotation.x -= c;
         }
         runnerShadow.scale.set(1, 1, 2.2);
+        // 飛んでいる間は脚を後ろに伸ばして一直線に
+        if (rn.air > 0) { r.legL.rotation.x = 0.05; r.legR.rotation.x = -0.05; runnerShadow.scale.set(0.8, 0.8, 1.8); }
         break;
       }
       case 'feet': {
@@ -900,6 +946,7 @@ window.Scene3D = (() => {
     const onField = state.phase !== 'title';
     runnerRig.root.visible = runnerShadow.visible = onField;
     if (onField) poseRunner(rn, state.time);
+    updateDust(dt, onField ? rn : null, state);
     posePitcher(state.pitcher);
     for (const [id, rig] of Object.entries(fielderRigs)) poseFielder(rig, state.fielders[id], state.time);
     poseCatcher(state.catcher, state.time);
@@ -962,18 +1009,19 @@ window.Scene3D = (() => {
     const s = onField && state.phase !== 'lead' && state.phase !== 'ready' ? Math.max(0, Math.min(dl, (rn.x - from.x) * dx + (rn.y - from.y) * dy)) : 0;
     const qx = from.x + dx * s, qy = from.y + dy * s;
     const running = state.phase === 'run' || state.phase === 'result';
-    const back = running ? 6.2 : 7.2;
-    let tx = qx - dx * back + ox * 2.4, ty = qy - dy * back + oy * 2.4, tz = running ? 2.8 : 3.3;
-    const mix = running ? 0.12 : 0.36;
-    let lx = lerp(to.x, MOUND.x, mix), ly = lerp(to.y, MOUND.y, mix), lz = running ? 0.6 : 1.0;
+    // 望遠: 離れたところから画角を狭くして見る(投手や塁が大きく見える)
+    const back = running ? 14 : 17;
+    let tx = qx - dx * back + ox * 3.5, ty = qy - dy * back + oy * 3.5, tz = running ? 3.8 : 4.6;
+    const mix = running ? 0.2 : 0.5;
+    let lx = lerp(to.x, MOUND.x, mix), ly = lerp(to.y, MOUND.y, mix), lz = running ? 0.5 : 0.9;
     if (state.phase === 'title') {
       // タイトル画面はゆっくり内野を回る
       const a = state.time * 0.08;
-      tx = Math.sin(a) * 34; ty = 20 + Math.cos(a) * 34; tz = 9;
+      tx = Math.sin(a) * 62; ty = 20 + Math.cos(a) * 62; tz = 14;
       lx = 0; ly = 20; lz = 0;
     }
     const k = 1 - Math.exp(-(running ? 6 : 4) * dt);
-    if (!cam.init || Math.hypot(tx - cam.x, ty - cam.y) > 20) {
+    if (!cam.init || Math.hypot(tx - cam.x, ty - cam.y) > 30) {
       Object.assign(cam, { x: tx, y: ty, z: tz, lx, ly, lz, init: true });
     } else {
       cam.x += (tx - cam.x) * k; cam.y += (ty - cam.y) * k; cam.z += (tz - cam.z) * k;

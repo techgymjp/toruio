@@ -14,17 +14,21 @@
   // ランナー
   const V_JOG = 7.0, V_DASH = 9.0, ACC = 7.5, BRAKE = 9;
   const LEAD_V = 2.6, BACK_V = 6.0, BACK_ACC = 14, BACK_TURN = 0.12, LEAD_MAX = 10;
-  const SLIDE_T = 0.2;           // スライディングで体を投げ出すまでの時間
-  const HEAD_DEC = 12, HEAD_REACH = 2.2, HEAD_OVER = 1.2;
-  const FEET_DEC = 9, FEET_REACH = 1.0;
+  const SLIDE_T = 0.15;          // スライディングで体を投げ出すまでの時間
+  // ヘッドスライディング: 地面を蹴って低く飛び(加速)、着地して滑る。手がベースに着いたとき速すぎると止まれずオーバースライド
+  const HEAD_BOOST = 3.0, HEAD_AIR = 0.3, HEAD_AIR_H = 0.45, AIR_DRAG = 2;
+  const HEAD_DEC = 14, HEAD_REACH = 2.2, HEAD_GRIP = 6.0;
+  // スライディング(足から): 少し加速して低く滑り込む。足がベースに引っかかって止まるのでオーバースライドしない
+  const FEET_BOOST = 2.4, FEET_AIR = 0.12, FEET_AIR_H = 0.15;
+  const FEET_DEC = 12, FEET_REACH = 1.0;
   const DIVE_DEC = 8, DIVE_REACH = 2.0;
   const CRAWL_V = 1.8, REACT = 0.12, TOUCH = 0.2;
   // スタミナ(1 チャレンジの間ずっと減っていく。減るほど足が遅くなる)
   const ST_LEAD = 4, ST_HEAD = 14, ST_FEET = 8, ST_DIVE = 10;
   // バッテリー
   const PICK_TELL = 0.4, PICK_V = 30, TAG_T = 0.12, PICK_MAX = 3;
-  const DELIVER = 1.0, DELIVER_HOME = 2.5, PITCH_V = 38;
-  const TRANSFER = 0.9, THROW_REL = 0.18, THROW_V = 40, FIELDER_V = 8;
+  const DELIVER = 1.0, DELIVER_HOME = 2.22, PITCH_V = 38;
+  const TRANSFER = 0.75, THROW_REL = 0.18, THROW_V = 40, FIELDER_V = 8;
   const DT = 1 / 120;
   const t = (k, v) => I18N.t(k, v);
 
@@ -48,13 +52,16 @@
   const pressed = { head: false, feet: false, start: false };
   let bot = null; // テスト用: (state) => { lead, dash, head, feet } を返す関数
 
+  // ボタンの配置は画面の角からの距離(dx: 左右の端から, dy: 下端から)。スマホでは UI 全体を U 倍に大きくする
   const BTN = {
-    lead: { x: 130, y: 515, r: 80, label: 'btn.lead', key: 'Space / Z', hold: true },
-    dash: { x: 860, y: 545, r: 62, label: 'btn.dash', key: 'Shift / X', hold: true },
-    head: { x: 735, y: 452, r: 48, label: 'btn.head', key: 'V / ↑' },
-    feet: { x: 715, y: 585, r: 48, label: 'btn.feet', key: 'C / ↓' },
+    lead: { dx: 140, dy: 135, r0: 96, left: true, label: 'btn.lead', key: 'Space / Z', hold: true },
+    dash: { dx: 102, dy: 98, r0: 70, label: 'btn.dash', key: 'Shift / X', hold: true },
+    // 右手の親指で: ダッシュ(右下)、その上にヘッドスライディング、左にスライディング(画面の真ん中を空ける)
+    head: { dx: 102, dy: 222, r0: 54, label: 'btn.head', key: 'V / ↑' },
+    feet: { dx: 240, dy: 62, r0: 56, label: 'btn.feet', key: 'C / ↓' },
   };
-  const MUTE = { x: 596, y: 36, r: 20 };
+  const MUTE = { x: 596, y: 36, r: 22 };
+  let U = 1;
   const pointers = new Map(); // pointerId -> ボタン名 | 'none'
 
   const isKey = (k, ...names) => names.includes(k);
@@ -64,7 +71,8 @@
     if (!keys.has(k)) {
       if (isKey(k, 'v', 'ArrowUp')) pressed.head = true;
       if (isKey(k, 'c', 'ArrowDown')) pressed.feet = true;
-      if (isKey(k, ' ', 'Enter') && (state.phase === 'title' || state.phase === 'over')) pressed.start = true;
+      if (state.phase === 'title' && (k === 'h' || (state.help && isKey(k, ' ', 'Enter', 'Escape')))) setHelp(!state.help);
+      else if (isKey(k, ' ', 'Enter') && (state.phase === 'title' || state.phase === 'over')) pressed.start = true;
       if (isKey(k, 'p', 'Escape')) togglePause();
       if (k === 'm') Sound.setMuted(!Sound.muted);
     }
@@ -91,11 +99,12 @@
     e.preventDefault();
     canvas.setPointerCapture(e.pointerId);
     const p = canvasPos(e);
-    if (Math.hypot(p.x - MUTE.x, p.y - MUTE.y) <= MUTE.r + 6) {
+    if (Math.hypot(p.x - MUTE.x, p.y - MUTE.y) <= (MUTE.r + 8) * U) {
       Sound.setMuted(!Sound.muted);
       pointers.set(e.pointerId, 'none');
       return;
     }
+    if (state.phase === 'title' && state.help) { setHelp(false); pointers.set(e.pointerId, 'none'); return; }
     if (state.phase === 'title' || state.phase === 'over') {
       if (state.phase !== 'over' || state.overT > 1.0) pressed.start = true;
       pointers.set(e.pointerId, 'none');
@@ -153,7 +162,7 @@
   function newRunner(stamina = 100) {
     return {
       s: 0, v: 0, mode: 'base', t: 0, prog: 0, x: 0, y: 0, face: 0,
-      stamina, held: false, goT: -1, slid: null, touched: false, touchT: 0, overslid: false,
+      stamina, held: false, goT: -1, air: 0, z: 0, slid: null, touched: false, touchT: 0, overslid: false,
       backT: 0,
     };
   }
@@ -340,9 +349,12 @@
     if (!r.slid && (r.mode === 'run' || r.mode === 'brake') && (pressed.head || pressed.feet)) {
       r.slid = pressed.head ? 'head' : 'feet';
       r.mode = r.slid; r.prog = 0; r.t = 0;
-      r.v *= r.slid === 'head' ? 1.0 : 0.97;
+      // 地面を蹴って飛び出す(加速)
+      r.v += r.slid === 'head' ? HEAD_BOOST : FEET_BOOST;
+      r.air = r.airT = r.slid === 'head' ? HEAD_AIR : FEET_AIR;
+      r.airH = r.slid === 'head' ? HEAD_AIR_H : FEET_AIR_H;
       spend(r, r.slid === 'head' ? ST_HEAD : ST_FEET);
-      Sound.slide(r.slid === 'head' ? 1.1 : 1);
+      Sound.slide(r.slid === 'head' ? 1.1 : 1, r.airT);
     }
     switch (r.mode) {
       case 'run': {
@@ -360,25 +372,40 @@
         break;
       case 'head': case 'feet': {
         r.prog += dt / SLIDE_T;
-        r.v = Math.max(0, r.v - (r.mode === 'head' ? HEAD_DEC : FEET_DEC) * dt);
+        if (r.air > 0) {
+          // 低く飛んでいる間はほとんど減速しない
+          r.air -= dt;
+          r.v = Math.max(0, r.v - AIR_DRAG * dt);
+          const u = 1 - Math.max(0, r.air) / r.airT;
+          r.z = 4 * r.airH * u * (1 - u);
+          if (r.air <= 0) { r.z = 0; state.landed = { t: state.time, x: r.x, y: r.y, big: r.mode === 'head' }; Sound.land(r.mode === 'head'); state.shake = Math.max(state.shake, r.mode === 'head' ? 0.5 : 0.25); }
+        } else {
+          r.v = Math.max(0, r.v - (r.mode === 'head' ? HEAD_DEC : FEET_DEC) * dt);
+        }
         r.s += r.v * dt;
         if (r.crawling && !r.touched) {
           r.crawlWait -= dt;
           if (r.crawlWait <= 0) r.s += CRAWL_V * dt;
         }
-        if (!r.touched && remain() <= TOUCH) touch(r);
+        if (!r.touched && remain() <= TOUCH) {
+          touch(r);
+          if (r.mode === 'head') {
+            if (r.v > HEAD_GRIP) {
+              // 勢いがありすぎて手が離れる
+              r.overslid = true;
+              popup(t('pop.overslide'), '#ffab91', 30);
+            } else {
+              r.v = 0; r.air = 0; r.z = 0; // ベースをつかんで止まる
+            }
+          }
+        }
         if (r.touched) r.crawling = false;
         if (r.mode === 'feet' && tip(r) >= BL + 0.05) {
           // 足がベースに引っかかって止まる
           r.s = BL + 0.05 - FEET_REACH * Math.min(1, r.prog); r.v = 0;
         }
-        if (r.mode === 'head' && r.touched && !r.overslid && tip(r) > BL + HEAD_OVER) {
-          r.overslid = true;
-          popup(t('pop.overslide'), '#ffab91', 30);
-        }
-        if (r.v <= 0 && r.prog >= 1) {
+        if (r.v <= 0 && r.prog >= 1 && r.air <= 0) {
           r.t = 0;
-          // 届かなければ起き上がって這う
           // 届かなければ滑った姿勢のまま手(足)を伸ばしてにじり寄る
           if (!r.touched) { r.crawling = true; r.crawlWait = 0.25; }
           if (r.mode === 'head') r.mode = 'down';
@@ -394,6 +421,18 @@
         break;
       default: break;
     }
+  }
+  // 今の速さで滑ったとき、塁まで何 m 手前で滑れば届くか(far: ぎりぎり届く / near: これより近いと速すぎて止まれない)
+  function headPlan(v) {
+    const v0 = v + HEAD_BOOST, v1 = v0 - AIR_DRAG * HEAD_AIR;
+    const air = (v0 + v1) / 2 * HEAD_AIR;
+    const far = air + v1 * v1 / (2 * HEAD_DEC) + HEAD_REACH - TOUCH;
+    const near = air + Math.max(0, v1 * v1 - HEAD_GRIP * HEAD_GRIP) / (2 * HEAD_DEC) + HEAD_REACH - TOUCH;
+    return { far, near };
+  }
+  function feetPlan(v) {
+    const v0 = v + FEET_BOOST, v1 = v0 - AIR_DRAG * FEET_AIR;
+    return { far: (v0 + v1) / 2 * FEET_AIR + v1 * v1 / (2 * FEET_DEC) + FEET_REACH - TOUCH, near: 0.6 };
   }
   function touch(r) {
     if (r.touched) return;
@@ -478,7 +517,7 @@
     setPhase('run');
     // 自動でスタート(帰塁中・倒れているとスタートが遅れる)
     r.goT = REACT + (r.mode === 'back' ? 0.18 : 0) + (r.mode === 'diveBack' || r.mode === 'downBack' ? 0.55 : 0);
-    r.slid = null; r.touched = false; r.overslid = false;
+    r.slid = null; r.touched = false; r.overslid = false; r.air = 0; r.z = 0;
     if (r.mode !== 'back' && r.mode !== 'diveBack') r.v = 0;
     const cover = COVER[state.to];
     if (cover !== 'catcher') {
@@ -699,11 +738,18 @@
       if (r.mode === 'head' || r.mode === 'feet' || r.mode === 'run' || r.mode === 'brake') {
         // 判定後も勢いのぶんだけ滑る
         r.prog += dt / SLIDE_T;
-        r.v = Math.max(0, r.v - 14 * dt);
+        if (r.air > 0) {
+          r.air -= dt;
+          const u = 1 - Math.max(0, r.air) / r.airT;
+          r.z = 4 * r.airH * u * (1 - u);
+        } else {
+          r.z = 0;
+          r.v = Math.max(0, r.v - 14 * dt);
+        }
         r.s += r.v * dt;
         if (r.mode === 'feet' && tip(r) >= BL + 0.05) r.v = 0;
       }
-      if (state.phaseT > 0.9 && r.mode !== 'safe' && r.mode !== 'out' && r.v < 0.05) { r.mode = state.result.safe ? 'safe' : 'out'; r.v = 0; }
+      if (state.phaseT > 0.9 && r.mode !== 'safe' && r.mode !== 'out' && r.v < 0.05 && !(r.air > 0)) { r.mode = state.result.safe ? 'safe' : 'out'; r.v = 0; r.z = 0; }
       if (state.phaseT >= 2.4) nextAfterResult();
     }
     pressed.head = pressed.feet = false;
@@ -835,8 +881,12 @@
   function drawMeter() {
     const r = state.runner;
     if (!r || state.phase === 'ready') return;
-    const mw = Math.min(420, W - 640), mx = W / 2 - mw / 2, my = 600, mh = 16;
+    // 左右のボタンの間に置き、スマホでは全体を大きくする
+    const left = BTN.lead.x + BTN.lead.r + 12, right = BTN.feet.x - BTN.feet.r - 12;
+    const mw = clamp((right - left) / U - 20, 150, 420), mx = -mw / 2, my = -40, mh = 16;
     ctx.save();
+    ctx.translate((left + right) / 2, H);
+    ctx.scale(U, U);
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(mx - 10, my - 34, mw + 20, mh + 46);
     ctx.textAlign = 'center';
@@ -854,7 +904,7 @@
       ctx.beginPath(); ctx.moveTo(x, my - 2); ctx.lineTo(x - 7, my - 12); ctx.lineTo(x + 7, my - 12); ctx.closePath(); ctx.fill();
       ctx.fillRect(x - 1.5, my - 2, 3, mh + 4);
       ctx.font = 'bold 15px sans-serif';
-      ctx.fillText(t('meter.lead', { m: r.s.toFixed(1) }), W / 2, my - 16);
+      ctx.fillText(t('meter.lead', { m: r.s.toFixed(1) }), 0, my - 16);
     } else {
       // 塁までの距離(右端が塁)。今の速さで「ここで滑れば届く」範囲を表示
       const RANGE = 12;
@@ -863,8 +913,8 @@
       ctx.fillRect(mx, my, mw, mh);
       if (!r.slid && (r.mode === 'run' || r.mode === 'brake') && r.v > 2) {
         const v = r.v;
-        const headFar = v * v / (2 * HEAD_DEC) + HEAD_REACH, headNear = headFar - HEAD_OVER - 0.1;
-        const vf = v * 0.97, feetFar = vf * vf / (2 * FEET_DEC) + FEET_REACH, feetNear = Math.max(0.6, feetFar - 2.6);
+        const hp = headPlan(v), fp = feetPlan(v);
+        const headFar = hp.far, headNear = hp.near, feetFar = fp.far, feetNear = fp.near;
         ctx.fillStyle = 'rgba(105,240,174,0.65)';
         ctx.fillRect(X(feetFar), my + mh / 2, X(feetNear) - X(feetFar), mh / 2);
         ctx.fillStyle = 'rgba(255,171,64,0.85)';
@@ -878,7 +928,7 @@
       ctx.beginPath(); ctx.arc(x, my + mh / 2, 7, 0, Math.PI * 2); ctx.fill();
       ctx.font = 'bold 15px sans-serif';
       ctx.fillStyle = '#fff';
-      ctx.fillText(d > 0.3 ? t('meter.remain', { m: Math.max(0, d).toFixed(1), b: t(BASE_NAME[state.to]) }) : t('meter.arrive'), W / 2, my - 16);
+      ctx.fillText(d > 0.3 ? t('meter.remain', { m: Math.max(0, d).toFixed(1), b: t(BASE_NAME[state.to]) }) : t('meter.arrive'), 0, my - 16);
       ctx.font = 'bold 11px sans-serif';
       ctx.textAlign = 'left';
       ctx.fillStyle = '#ffab40'; ctx.fillText(t('meter.head'), mx, my - 4);
@@ -891,30 +941,36 @@
   function drawControls() {
     ctx.save();
     for (const [name, b] of Object.entries(BTN)) {
-      let on = holding(name) || (name === 'lead' && input.lead) || (name === 'dash' && input.dash);
+      const on = holding(name) || (name === 'lead' && input.lead) || (name === 'dash' && input.dash);
       const active = name === 'lead' ? state.phase === 'lead'
         : name === 'dash' ? state.phase === 'run'
           : name === 'head' ? state.phase === 'run' || (state.phase === 'lead' && state.runner.s > 0.6)
             : state.phase === 'run';
-      ctx.globalAlpha = active ? 0.9 : 0.4;
+      ctx.save();
+      ctx.translate(b.x, b.y);
+      ctx.scale(U, U);
+      const r = b.r0;
+      ctx.globalAlpha = active ? 0.92 : 0.45;
       const col = { lead: '255,225,77', dash: '255,138,101', head: '255,171,64', feet: '105,240,174' }[name];
       ctx.fillStyle = on ? `rgba(${col},0.9)` : 'rgba(0,0,0,0.45)';
-      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = `rgba(${col},0.95)`; ctx.lineWidth = 3; ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = `rgba(${col},0.95)`; ctx.lineWidth = 4; ctx.stroke();
       ctx.fillStyle = on ? '#222' : '#fff';
       ctx.textAlign = 'center';
       const lines = t(b.label).split('\n');
-      const fs = name === 'lead' ? 22 : name === 'dash' ? 18 : 13;
+      const fs = name === 'lead' ? 28 : name === 'dash' ? 24 : 17;
       ctx.font = `900 ${fs}px sans-serif`;
-      lines.forEach((l, i) => ctx.fillText(l, b.x, b.y + 5 + (i - (lines.length - 1) / 2) * (fs + 2), b.r * 1.9));
+      const oy = name === 'lead' ? -4 : 0;
+      lines.forEach((l, i) => ctx.fillText(l, 0, oy + fs * 0.35 + (i - (lines.length - 1) / 2) * (fs + 3), r * 1.8));
       if (name === 'lead') {
-        ctx.font = '11px sans-serif';
-        ctx.fillText(t('btn.leadSub'), b.x, b.y + 30);
+        ctx.font = 'bold 13px sans-serif';
+        ctx.fillText(t('btn.leadSub'), 0, 30, r * 1.8);
       }
       if (!isTouch) {
-        ctx.font = '10px sans-serif';
-        ctx.fillText(b.key, b.x, b.y + b.r - 10);
+        ctx.font = '11px sans-serif';
+        ctx.fillText(b.key, 0, r - 10);
       }
+      ctx.restore();
     }
     ctx.restore();
   }
@@ -971,17 +1027,44 @@
   }
 
   function drawTitle() {
-    ctx.fillStyle = 'rgba(8,14,20,0.55)';
+    if (state.help) { drawHelp(); return; }
+    ctx.fillStyle = 'rgba(8,14,20,0.45)';
     ctx.fillRect(0, 0, W, H);
-    centerText(t('title.name'), 140, 72, '#ffe14d', '900');
-    centerText(t('title.sub'), 192, 24);
-    ctx.font = '17px sans-serif';
-    ctx.fillStyle = '#e6e6e6';
+    const k = Math.min(U, 1.4);
+    centerText(t('title.name'), 190, 84 * Math.min(U, 1.25), '#ffe14d', '900');
+    centerText(t('title.sub'), 190 + 62 * k, 26 * k);
+    if (state.best) centerText(t('title.best', { n: state.best.steals, h: state.best.home }), 190 + 112 * k, 22 * k, '#9fe8ff');
+    ctx.save();
+    ctx.globalAlpha = 0.55 + 0.45 * Math.abs(Math.sin(state.time * 3));
+    centerText(t(isTouch ? 'title.start.touch' : 'title.start.key'), H - 140, 34 * k, '#ffffff');
+    ctx.restore();
+    centerText(t('title.sound'), H - 92, 15 * k, '#cfd8dc', 'normal');
+  }
+
+  // 遊び方(タイトル画面の「遊び方」ボタンで開く別画面)
+  function drawHelp() {
+    ctx.fillStyle = 'rgba(6,10,18,0.86)';
+    ctx.fillRect(0, 0, W, H);
+    const k = Math.min(U, 1.4);
+    centerText(t('help.title'), 62 * k, 40 * k, '#ffe14d', '900');
     const lines = [1, 2, 3, 4, 5, 6].map((i) => t(`help.${isTouch ? 'touch' : 'key'}.${i}`));
-    lines.forEach((l, i) => ctx.fillText(l, W / 2, 245 + i * 30, W - 60));
-    if (state.best) centerText(t('title.best', { n: state.best.steals, h: state.best.home }), 450, 20, '#9fe8ff');
-    if (Math.floor(state.time * 2) % 2 === 0) centerText(t(isTouch ? 'title.start.touch' : 'title.start.key'), 515, 30, '#ffffff');
-    centerText(t('title.sound'), 570, 15, '#cfd8dc', 'normal');
+    const top = 62 * k + 30 * k, gap = Math.min(64, (H - 70 * k - top) / lines.length);
+    ctx.textAlign = 'left';
+    const x0 = Math.max(24, W / 2 - 560 * Math.min(k, 1.2));
+    lines.forEach((l, i) => {
+      const y = top + gap * (i + 0.6);
+      ctx.fillStyle = '#ffe14d';
+      ctx.font = `900 ${20 * k}px sans-serif`;
+      ctx.fillText(String(i + 1), x0, y);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${19 * k}px sans-serif`;
+      ctx.fillText(l, x0 + 34 * k, y, W - x0 * 2 - 34 * k);
+    });
+    centerText(t(isTouch ? 'help.close.touch' : 'help.close.key'), H - 28 * k, 20 * k, '#cfd8dc');
+  }
+
+  function setHelp(on) {
+    state.help = on;
   }
 
   function rankOf(n) {
@@ -997,22 +1080,25 @@
   function drawOver() {
     ctx.fillStyle = 'rgba(8,14,20,0.7)';
     ctx.fillRect(0, 0, W, H);
-    centerText(t('over.title'), 80, 32, '#ffffff', '900');
-    centerText(t('over.steals', { n: state.steals, m: TOTAL * 3 }), 130, 44, '#ffe14d', '900');
+    // 下半分は HTML のシェア・もう一度ボタンなので上に詰める
+    const k = Math.min(U, 1.3);
+    centerText(t('over.title'), 62, 30 * k, '#ffffff', '900');
+    centerText(t('over.steals', { n: state.steals, m: TOTAL * 3 }), 62 + 52 * k, 44 * k, '#ffe14d', '900');
     const [rank, col] = rankOf(state.steals);
-    centerText(t('over.rank', { r: rank }), 168, 24, col);
-    ctx.font = '16px sans-serif';
-    ctx.fillStyle = '#e6e6e6';
+    centerText(t('over.rank', { r: rank }), 62 + 88 * k, 24 * k, col);
+    ctx.font = `${16 * k}px sans-serif`;
+    ctx.fillStyle = '#eeeeee';
     ctx.textAlign = 'center';
-    ctx.fillText(t('over.line1', { a: state.s2, b: state.s3, h: state.home }), W / 2, 200);
-    ctx.fillText(t('over.line2', { k: state.bestStreak, p: state.pickOuts, c: state.csOuts }), W / 2, 224);
-    if (state.newRecord) centerText(t('over.new'), 258, 20, '#ff8a65');
-    else if (state.best) centerText(t('over.best', { n: state.best.steals, h: state.best.home }), 258, 17, '#9fe8ff');
+    ctx.fillText(t('over.line1', { a: state.s2, b: state.s3, h: state.home }), W / 2, 62 + 116 * k);
+    ctx.fillText(t('over.line2', { k: state.bestStreak, p: state.pickOuts, c: state.csOuts }), W / 2, 62 + 138 * k);
+    if (state.newRecord) centerText(t('over.new'), 62 + 166 * k, 20 * k, '#ff8a65');
+    else if (state.best) centerText(t('over.best', { n: state.best.steals, h: state.best.home }), 62 + 166 * k, 17 * k, '#9fe8ff');
   }
 
   function drawMute() {
     const { x, y, r } = MUTE;
     ctx.save();
+    ctx.translate(x, y); ctx.scale(U, U); ctx.translate(-x, -y);
     if (!Sound.muted && !Sound.ready && state.phase !== 'title' && state.phase !== 'over') {
       ctx.fillStyle = 'rgba(0,0,0,0.55)';
       ctx.fillRect(x - 84, y + 26, 168, 24);
@@ -1039,15 +1125,16 @@
   }
 
   function draw() {
+    placeMute();
     ctx.setTransform(overlayScale, 0, 0, overlayScale, 0, 0);
     ctx.clearRect(0, 0, W, H);
     if (state.phase !== 'title') {
       drawCue();
-      drawHUD();
-      drawDiamond();
+      ctx.save(); ctx.scale(U, U); drawHUD(); ctx.restore();
+      ctx.save(); ctx.translate(W, 0); ctx.scale(Math.min(U, 1.25), Math.min(U, 1.25)); ctx.translate(-W, 0); drawDiamond(); ctx.restore();
       drawMeter();
       drawControls();
-      drawPopups();
+      ctx.save(); ctx.translate(W / 2, 0); ctx.scale(Math.min(U, 1.25), Math.min(U, 1.25)); ctx.translate(-W / 2, 0); drawPopups(); ctx.restore();
       if (state.phase === 'ready' && !state.paused) {
         if (state.from === 1) {
           centerText(t('ready.ch', { n: state.challenge + 1 }), 230, 46, '#ffffff', '900');
@@ -1177,9 +1264,13 @@
   for (const ev of ['pointerdown', 'pointerup']) langEl.addEventListener(ev, (e) => e.stopPropagation());
   I18N.onChange(() => { if (!shareEl.hidden) prepareShare(); });
   I18N.apply();
+  const helpEl = $id('helpBtn');
+  helpEl.addEventListener('click', () => { audio(); setHelp(true); });
+  for (const ev of ['pointerdown', 'pointerup']) helpEl.addEventListener(ev, (e) => e.stopPropagation());
   function updateLegalVisibility() {
-    const show = state.phase === 'title';
+    const show = state.phase === 'title' && !state.help;
     if (show === langEl.hidden) langEl.hidden = !show;
+    if (show === helpEl.hidden) helpEl.hidden = !show;
   }
 
   // タイトル画面用に守備陣だけ並べておく
@@ -1194,13 +1285,25 @@
 
   // ---------- メインループ ----------
   let overlayScale = 1;
+  // 音ボタン: プレイ中は上の真ん中、タイトル・結果画面では右上の角(タイトル文字と重ならないように)
+  function placeMute() {
+    const corner = state.phase === 'title' || state.phase === 'over';
+    MUTE.x = corner ? W - 40 * U : W / 2 + 40 * U;
+    MUTE.y = 36 * U;
+  }
   function resize() {
     const r = canvas.getBoundingClientRect();
     if (!r.width || !r.height) return;
     const dpr = Math.min(window.devicePixelRatio || 1, isTouch ? 1.5 : 2);
     W = Math.round(H * r.width / r.height);
-    BTN.dash.x = W - 100; BTN.head.x = W - 225; BTN.feet.x = W - 245;
-    MUTE.x = W / 2 + 150;
+    // スマホ(画面の高さが低い)では文字とボタンを大きくする
+    U = (isTouch || r.height < 560) ? clamp(560 / r.height, 1, 1.6) : 1;
+    for (const b of Object.values(BTN)) {
+      b.r = b.r0 * U;
+      b.x = b.left ? b.dx * U : W - b.dx * U;
+      b.y = H - b.dy * U;
+    }
+    placeMute();
     overlayScale = (r.height / H) * dpr;
     canvas.width = Math.round(W * overlayScale);
     canvas.height = Math.round(H * overlayScale);
@@ -1235,6 +1338,6 @@
       state.from = from; state.to = (from + 1) % 4;
       setupField(); placeRunner(); setPhase('ready');
     },
-    tip,
+    tip, headPlan, feetPlan,
   };
 })();
