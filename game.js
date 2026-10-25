@@ -975,8 +975,19 @@
     ctx.restore();
   }
 
+  // 走っている間、今押せば塁に届く(止まれる)スライディングのボタンを光らせる
+  function slideReady() {
+    const r = state.runner, ready = { head: false, feet: false };
+    if (state.phase !== 'run' || !r || r.slid || (r.mode !== 'run' && r.mode !== 'brake') || r.v <= 2) return ready;
+    const d = BL - tip(r), hp = headPlan(r.v), fp = feetPlan(r.v);
+    ready.head = d <= hp.far && d >= hp.near;
+    ready.feet = d <= fp.far && d >= fp.near;
+    return ready;
+  }
+
   function drawControls() {
     ctx.save();
+    const ready = slideReady();
     for (const [name, b] of Object.entries(BTN)) {
       const on = holding(name) || (name === 'lead' && input.lead) || (name === 'dash' && input.dash);
       const active = name === 'lead' ? state.phase === 'lead'
@@ -989,7 +1000,28 @@
       const r = b.r0;
       ctx.globalAlpha = active ? 0.92 : 0.45;
       const col = { lead: '255,225,77', dash: '255,138,101', head: '255,171,64', feet: '105,240,174' }[name];
-      ctx.fillStyle = on ? `rgba(${col},0.9)` : 'rgba(0,0,0,0.45)';
+      if (ready[name]) {
+        // 押しどき: 光の輪を脈打たせ、上に「今!」
+        const pulse = 0.5 + 0.5 * Math.sin(state.time * 18);
+        ctx.globalAlpha = 1;
+        ctx.save();
+        ctx.shadowColor = `rgb(${col})`;
+        ctx.shadowBlur = 24 + pulse * 16;
+        ctx.strokeStyle = `rgba(${col},${0.7 + 0.3 * pulse})`;
+        ctx.lineWidth = 8;
+        ctx.beginPath(); ctx.arc(0, 0, r + 8 + pulse * 5, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+        // ヘッドスライディングは上に右上の図があるので、左側に出す
+        const [nx, ny, al] = name === 'head' ? [-r - 18, 10, 'right'] : [0, -r - 18, 'center'];
+        ctx.font = '900 26px sans-serif';
+        ctx.textAlign = al;
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+        ctx.strokeText(t('btn.now'), nx, ny);
+        ctx.fillStyle = `rgb(${col})`;
+        ctx.fillText(t('btn.now'), nx, ny);
+      }
+      ctx.fillStyle = on ? `rgba(${col},0.9)` : ready[name] ? `rgba(${col},0.55)` : 'rgba(0,0,0,0.45)';
       ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = `rgba(${col},0.95)`; ctx.lineWidth = 4; ctx.stroke();
       ctx.fillStyle = on ? '#222' : '#fff';
