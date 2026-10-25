@@ -1,0 +1,47 @@
+Copyright (c) 2026 TECH GYM K.K. All rights reserved.
+
+目指せ盗塁王 (STEAL KING)
+
+このリポジトリのソースコード、画像、音声、文章、その他すべての内容（以下「本ソフトウェア」）の著作権は、
+テックジム株式会社（TECH GYM K.K.）に帰属します。
+
+本ソフトウェアは閲覧のためにのみ公開しています。テックジム株式会社の書面による事前の許可なく、
+次の行為を行うことを禁止します。
+
+- 本ソフトウェアの全部または一部を複製、改変、再配布すること
+- 本ソフトウェアまたはそれを改変したものを、Web サイト、スマートフォンアプリ（Google Play、App Store
+  その他のアプリストアを含む）、その他の形で公開、販売、配信すること
+- 本ソフトウェアの名称、ロゴ、アイコン、画像を使用すること
+
+ただし、テックジムの受講生が学習目的で本ソフトウェアを複製・改変して利用することは許可します。
+この場合も、アプリストアでの公開、広告の掲載、販売などの商用利用は禁止し、この著作権表示を残すものとします。
+
+---
+
+This repository's source code, images, sounds, text, and all other contents (the "Software")
+are the property of TECH GYM K.K.
+
+The Software is published for viewing only. Without prior written permission from TECH GYM K.K.,
+you may not:
+
+- copy, modify, or redistribute the Software, in whole or in part;
+- publish, sell, or distribute the Software or any modified version of it as a website, a mobile app
+  (including on Google Play, the App Store, or any other app store), or in any other form;
+- use the Software's name, logo, icons, or images.
+
+However, students of TECH GYM may copy and modify the Software for learning purposes.
+Even then, publishing it on an app store, showing ads, selling it, or any other commercial use
+is not permitted, and this copyright notice must be kept.
+
+---
+
+Third-party software
+
+This repository includes third-party software under its own license, which is not affected
+by the terms above:
+
+- three.js (vendor/three.min.js) — MIT License, Copyright 2010-2023 Three.js Authors.
+  See vendor/three.LICENSE.
+
+The Android app also uses Capacitor and @capacitor-community/admob (MIT License), installed
+from npm at build time.

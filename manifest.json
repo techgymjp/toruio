@@ -1,0 +1,9 @@
+{
+  "name": "目指せ盗塁王",
+  "short_name": "盗塁王",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0a0d1c",
+  "theme_color": "#0a0d1c"
+}

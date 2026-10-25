@@ -1,0 +1,219 @@
+html, body {
+  margin: 0;
+  height: 100%;
+  height: 100dvh;
+  background: #0a0d1c;
+  overflow: hidden;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#wrap {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 横長の画面いっぱいに広げる(縦横比 4:3 〜 2.4:1 の範囲) */
+#stage {
+  position: relative;
+  width: min(100vw, 240vh);
+  height: min(100vh, 75vw);
+  width: min(100vw, 240dvh);
+  height: min(100dvh, 75vw);
+}
+
+/* スマホを縦に持っているときの案内 */
+#rotate {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: #0a0d1c;
+  color: #fff;
+  font-family: sans-serif;
+  text-align: center;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 0 16px;
+}
+
+#rotate .phone {
+  width: 54px;
+  height: 92px;
+  border: 4px solid #ffe14d;
+  border-radius: 10px;
+  animation: turn 2s ease-in-out infinite;
+}
+
+#rotate p {
+  margin: 0;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+#rotate small {
+  color: #b0bec5;
+  font-size: 14px;
+}
+
+@keyframes turn {
+  0%, 20% { transform: rotate(0deg); }
+  60%, 100% { transform: rotate(-90deg); }
+}
+
+@media (orientation: portrait) and (pointer: coarse) {
+  #rotate { display: flex; }
+}
+
+#stage canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+#view {
+  background: #0a0d1c;
+}
+
+/* 結果画面のシェアボタン(キャンバスの上に重ねる) */
+#share {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  transform: translateX(-50%);
+  width: min(420px, 60%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: sans-serif;
+  z-index: 2;
+}
+
+#share[hidden] {
+  display: none;
+}
+
+#share .row {
+  display: flex;
+  gap: 8px;
+}
+
+#share .sbtn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 10px;
+  padding: 7px 10px;
+  font: inherit;
+  font-weight: 800;
+  font-size: clamp(12px, 2.4vh, 16px);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  background: #dfe7f7;
+  color: #1b2440;
+}
+
+#share .sbtn.main {
+  padding: 9px 12px;
+  font-size: clamp(14px, 3vh, 19px);
+  font-weight: 900;
+  background: linear-gradient(#7fe3ff, #2f9bff);
+  color: #031a33;
+  box-shadow: 0 4px 0 #11589b, 0 8px 18px rgba(0, 0, 0, 0.4);
+}
+
+#share .sbtn.main small {
+  display: block;
+  font-size: 0.65em;
+  font-weight: 700;
+  opacity: 0.75;
+}
+
+#share .sbtn:active {
+  transform: translateY(2px);
+}
+
+/* タイトル画面の言語切り替え */
+#langSel {
+  position: absolute;
+  left: 12px;
+  bottom: 8px;
+  z-index: 2;
+  display: flex;
+  gap: 6px;
+  font-family: sans-serif;
+}
+
+#langSel[hidden] {
+  display: none;
+}
+
+#langSel .langBtn {
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  cursor: pointer;
+}
+
+#langSel .langBtn.on {
+  background: rgba(255, 225, 77, 0.9);
+  border-color: #ffe14d;
+  color: #222;
+  font-weight: bold;
+}
+
+#share .sbtn.retry,
+#pauseMenu .sbtn.retry {
+  background: linear-gradient(#ffe36b, #ffb300);
+  color: #1b1200;
+  font-weight: 900;
+  box-shadow: 0 3px 0 #a86a00;
+}
+
+/* ポーズ画面のボタン */
+#pauseMenu {
+  position: absolute;
+  left: 50%;
+  top: 44%;
+  transform: translateX(-50%);
+  width: min(300px, 50%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 3;
+  font-family: sans-serif;
+}
+
+#pauseMenu[hidden] {
+  display: none;
+}
+
+#pauseMenu .sbtn {
+  border: 0;
+  border-radius: 10px;
+  padding: 11px 12px;
+  font: inherit;
+  font-weight: 900;
+  font-size: clamp(14px, 3vh, 18px);
+  cursor: pointer;
+  background: #dfe7f7;
+  color: #1b2440;
+}
