@@ -144,6 +144,7 @@
     paused: false,
     total: TOTAL,
     challenge: 0, steals: 0, home: 0, s2: 0, s3: 0, pickOuts: 0, csOuts: 0,
+    tries: { 2: 0, 3: 0, 0: 0 }, // 塁ごとの挑戦回数(牽制死も失敗として数える)
     streak: 0, bestStreak: 0,
     from: 1, to: 2,
     phaseT: 0, overT: 0, time: 0,
@@ -221,7 +222,7 @@
 
   function newGame() {
     Object.assign(state, {
-      paused: false, challenge: 0, steals: 0, home: 0, s2: 0, s3: 0, pickOuts: 0, csOuts: 0,
+      paused: false, challenge: 0, steals: 0, home: 0, s2: 0, s3: 0, pickOuts: 0, csOuts: 0, tries: { 2: 0, 3: 0, 0: 0 },
       streak: 0, bestStreak: 0, popups: [], newRecord: false, overT: 0,
     });
     startChallenge();
@@ -621,6 +622,7 @@
 
   function finish(safe, kind) {
     state.judged = true;
+    state.tries[state.to]++;
     const r = state.runner;
     const u = state.ump;
     u.call = safe ? 'safe' : 'out'; u.t = 0;
@@ -1172,7 +1174,13 @@
     ctx.font = `${16 * k}px sans-serif`;
     ctx.fillStyle = '#eeeeee';
     ctx.textAlign = 'center';
-    ctx.fillText(t('over.line1', { a: state.s2, b: state.s3, h: state.home }), W / 2, 62 + 116 * k);
+    // 塁ごとの成功数 / 挑戦数 (成功率)
+    const rate = (ok, n) => (n ? `${ok}/${n} (${Math.round(ok / n * 100)}%)` : '-');
+    ctx.font = `bold ${17 * k}px sans-serif`;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(t('over.line1', { a: rate(state.s2, state.tries[2]), b: rate(state.s3, state.tries[3]), h: rate(state.home, state.tries[0]) }), W / 2, 62 + 116 * k, W - 40);
+    ctx.font = `${16 * k}px sans-serif`;
+    ctx.fillStyle = '#eeeeee';
     ctx.fillText(t('over.line2', { k: state.bestStreak, p: state.pickOuts, c: state.csOuts }), W / 2, 62 + 138 * k);
     if (state.newRecord) centerText(t('over.new'), 62 + 166 * k, 20 * k, '#ff8a65');
     else if (state.best) centerText(t('over.best', { n: state.best.steals, h: state.best.home }), 62 + 166 * k, 17 * k, '#9fe8ff');
