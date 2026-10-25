@@ -14,7 +14,7 @@
   // ランナー
   const V_JOG = 7.0, V_DASH = 9.0, ACC = 7.5;
   // 滑らずに着くときは塁の直前で一気に止まる(駆け抜けに近い)。スタミナを使わない代わりに少し遅い
-  const BRAKE = 22, BRAKE_MIN_V = 3;
+  const BRAKE = 34, BRAKE_MIN_V = 4;
   const LEAD_V = 2.6, BACK_V = 6.0, BACK_ACC = 14, BACK_TURN = 0.12, LEAD_MAX = 10;
   const SLIDE_T = 0.15;          // スライディングで体を投げ出すまでの時間
   // ヘッドスライディング: 地面を蹴って低く飛び(加速)、着地して滑る。手がベースに着いたとき速すぎると止まれずオーバースライド
@@ -26,13 +26,13 @@
   const DIVE_DEC = 8, DIVE_REACH = 2.0;
   const CRAWL_V = 1.8, REACT = 0.12, TOUCH = 0.2;
   // スタミナ(1 チャレンジの間ずっと減っていく。減るほど足が遅くなる)
-  const ST_LEAD = 4, ST_HEAD = 26, ST_FEET = 14, ST_DIVE = 10;
+  const ST_LEAD = 2, ST_HEAD = 34, ST_FEET = 14, ST_DIVE = 10;
   // バッテリー
   const PICK_TELL = 0.4, PICK_V = 30, TAG_T = 0.12, PICK_MAX = 3;
   // 偽投: 振り向いてから FEINT_HOLD 秒でホームに向き直り、FEINT_END 秒で終わる。FEINT_QUICK の確率ですぐ投球
   const FEINT_HOLD = 0.65, FEINT_END = 0.85, FEINT_QUICK = 0.6;
-  const DELIVER = 1.0, DELIVER_HOME = 2.22, PITCH_V = 38;
-  const TRANSFER = 0.75, THROW_REL = 0.18, THROW_V = 40, FIELDER_V = 8;
+  const DELIVER = 1.0, DELIVER_HOME = 2.34, PITCH_V = 38;
+  const TRANSFER = 0.85, THROW_REL = 0.18, THROW_V = 40, FIELDER_V = 8;
   const DT = 1 / 120;
   const t = (k, v) => I18N.t(k, v);
 
@@ -266,7 +266,7 @@
   }
 
   // ---------- ランナー ----------
-  function stFactor(r) { return 0.8 + 0.2 * r.stamina / 100; }
+  function stFactor(r) { return 0.6 + 0.4 * r.stamina / 100; }
   function spend(r, n) { r.stamina = Math.max(0, r.stamina - n); }
 
   function tip(r) {
@@ -374,7 +374,7 @@
       case 'brake':
         r.v = Math.max(BRAKE_MIN_V, r.v - BRAKE * dt);
         r.s += r.v * dt;
-        if (remain() <= 0.25) { touch(r); r.s = BL - 0.2; r.v = 0; r.mode = 'stand'; }
+        if (remain() <= 0.6) { touch(r); r.s = BL - 0.2; r.v = 0; r.mode = 'stand'; } // 足を伸ばしてベースの手前の角を踏む
         break;
       case 'head': case 'feet': {
         r.prog += dt / SLIDE_T;
