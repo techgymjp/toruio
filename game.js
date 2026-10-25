@@ -975,11 +975,14 @@
     ctx.restore();
   }
 
-  // 走っている間、今押せば塁に届く(止まれる)スライディングのボタンを光らせる
+  // 走っている間、スライディングの押しどきのボタンを点滅させる。
+  // 点滅を見てから指が動くまで(約 0.2 秒)に進む距離のぶん早めに点滅させ、見てすぐ押せば押しどきに入るようにする
+  // (メーターの帯は本当の押しどきを表示する)
+  const REACT_LEAD = 0.2;
   function slideReady() {
     const r = state.runner, ready = { head: false, feet: false };
     if (state.phase !== 'run' || !r || r.slid || (r.mode !== 'run' && r.mode !== 'brake') || r.v <= 2) return ready;
-    const d = BL - tip(r), hp = headPlan(r.v), fp = feetPlan(r.v);
+    const d = BL - tip(r) - r.v * REACT_LEAD, hp = headPlan(r.v), fp = feetPlan(r.v);
     ready.head = d <= hp.far && d >= hp.near;
     ready.feet = d <= fp.far && d >= fp.near;
     return ready;
@@ -1418,6 +1421,6 @@
       state.from = from; state.to = (from + 1) % 4;
       setupField(); placeRunner(); setPhase('ready');
     },
-    tip, headPlan, feetPlan,
+    tip, headPlan, feetPlan, slideReady,
   };
 })();
