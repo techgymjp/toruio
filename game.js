@@ -639,7 +639,7 @@
       Sound.cheer(home ? 1.7 : 1.15, home ? 5 : 3.2);
       if (home || state.streak % 10 === 0) Sound.horn();
       fireworks(home ? 9 : state.to === 3 ? 4 : 3, home);
-      later(0.5, () => { if (state.runner === r && r.mode !== 'head' && r.mode !== 'feet') r.mode = 'safe'; });
+      later(0.5, () => { if (state.runner === r && r.mode === 'stand') r.mode = 'safe'; }); // 立ったまま着いたときはすぐガッツポーズ
     } else {
       state.streak = 0;
       if (kind === 'cs') state.csOuts++;
@@ -775,7 +775,18 @@
         r.s += r.v * dt;
         if (r.mode === 'feet' && tip(r) >= BL + 0.05) r.v = 0;
       }
-      if (state.phaseT > 0.9 && r.mode !== 'safe' && r.mode !== 'out' && r.v < 0.05 && !(r.air > 0)) { r.mode = state.result.safe ? 'safe' : 'out'; r.v = 0; r.z = 0; }
+      if (state.phaseT > 0.9 && r.mode !== 'safe' && r.mode !== 'out' && r.v < 0.05 && !(r.air > 0)) {
+        // 起き上がる。セーフならベースの上に乗る(滑った姿勢のままだと足の位置がベースの手前に残る)
+        const safe = state.result.safe;
+        const goal = safe && r.touched ? BL - 0.1 : Math.min(tip(r), BL + 1) - 0.3;
+        r.mode = safe ? 'safe' : 'out'; r.v = 0; r.z = 0;
+        r.standFrom = r.s; r.standTo = safe ? goal : Math.max(r.s, goal); r.standT = 0;
+      }
+      if (r.standTo != null && r.standT < 1) {
+        r.standT = Math.min(1, r.standT + dt / 0.35);
+        const e = 1 - (1 - r.standT) * (1 - r.standT);
+        r.s = r.standFrom + (r.standTo - r.standFrom) * e;
+      }
       if (state.phaseT >= 2.4) nextAfterResult();
     }
     pressed.head = pressed.feet = false;
