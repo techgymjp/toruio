@@ -12,7 +12,9 @@
   const M = Scene3D.MOUND;
 
   // ランナー
-  const V_JOG = 7.0, V_DASH = 9.0, ACC = 7.5, BRAKE = 9;
+  const V_JOG = 7.0, V_DASH = 9.0, ACC = 7.5;
+  // 滑らずに着くときは塁の直前で一気に止まる(駆け抜けに近い)。スタミナを使わない代わりに少し遅い
+  const BRAKE = 22, BRAKE_MIN_V = 3;
   const LEAD_V = 2.6, BACK_V = 6.0, BACK_ACC = 14, BACK_TURN = 0.12, LEAD_MAX = 10;
   const SLIDE_T = 0.15;          // スライディングで体を投げ出すまでの時間
   // ヘッドスライディング: 地面を蹴って低く飛び(加速)、着地して滑る。手がベースに着いたとき速すぎると止まれずオーバースライド
@@ -24,7 +26,7 @@
   const DIVE_DEC = 8, DIVE_REACH = 2.0;
   const CRAWL_V = 1.8, REACT = 0.12, TOUCH = 0.2;
   // スタミナ(1 チャレンジの間ずっと減っていく。減るほど足が遅くなる)
-  const ST_LEAD = 4, ST_HEAD = 14, ST_FEET = 8, ST_DIVE = 10;
+  const ST_LEAD = 4, ST_HEAD = 26, ST_FEET = 14, ST_DIVE = 10;
   // バッテリー
   const PICK_TELL = 0.4, PICK_V = 30, TAG_T = 0.12, PICK_MAX = 3;
   const DELIVER = 1.0, DELIVER_HOME = 2.22, PITCH_V = 38;
@@ -362,11 +364,11 @@
         r.v = r.v < vmax ? Math.min(vmax, r.v + ACC * dt) : Math.max(vmax, r.v - 4 * dt);
         r.s += r.v * dt;
         // スライディングしないと手前で減速して止まる
-        if (remain() <= r.v * r.v / (2 * BRAKE) + 0.3) r.mode = 'brake';
+        if (remain() <= r.v * r.v / (2 * BRAKE) + 0.15) r.mode = 'brake';
         break;
       }
       case 'brake':
-        r.v = Math.max(1.0, r.v - BRAKE * dt);
+        r.v = Math.max(BRAKE_MIN_V, r.v - BRAKE * dt);
         r.s += r.v * dt;
         if (remain() <= 0.25) { touch(r); r.s = BL - 0.2; r.v = 0; r.mode = 'stand'; }
         break;
