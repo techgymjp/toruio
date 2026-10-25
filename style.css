@@ -151,7 +151,7 @@ html, body {
 #helpBtn {
   position: absolute;
   left: 50%;
-  top: 60%;
+  top: 67%;
   transform: translateX(-50%);
   z-index: 2;
   font-family: sans-serif;

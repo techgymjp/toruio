@@ -29,6 +29,8 @@
   const ST_LEAD = 4, ST_HEAD = 26, ST_FEET = 14, ST_DIVE = 10;
   // バッテリー
   const PICK_TELL = 0.4, PICK_V = 30, TAG_T = 0.12, PICK_MAX = 3;
+  // 偽投: 振り向いてから FEINT_HOLD 秒でホームに向き直り、FEINT_END 秒で終わる。FEINT_QUICK の確率ですぐ投球
+  const FEINT_HOLD = 0.65, FEINT_END = 0.85, FEINT_QUICK = 0.6;
   const DELIVER = 1.0, DELIVER_HOME = 2.22, PITCH_V = 38;
   const TRANSFER = 0.75, THROW_REL = 0.18, THROW_V = 40, FIELDER_V = 8;
   const DT = 1 / 120;
@@ -212,7 +214,9 @@
   // 1 チャレンジごとに投手と捕手が変わる
   function newBattery() {
     const quick = rand(0.9, 1.15), pick = rand(0.6, 1.6), arm = rand(0.9, 1.12);
-    return { quick, pick, arm };
+    // 牽制のうち、投げるふり(偽投)にする割合
+    const feint = rand(0.12, 0.45);
+    return { quick, pick, arm, feint };
   }
 
   function newGame() {
@@ -453,13 +457,25 @@
   function updatePitcher(dt) {
     const p = state.pitcher, r = state.runner;
     p.t += dt;
+    const target = B[state.from];
     if (p.mode === 'set') {
-      if (p.picks < PICK_MAX && p.t > 0.6 && Math.random() < pickoffRate(r.s) * dt) startPickoff();
+      if (p.picks < PICK_MAX && p.t > 0.6 && Math.random() < pickoffRate(r.s) * dt) startPickoff(Math.random() < state.battery.feint);
       else if (p.t >= p.setT) startDelivery();
+    } else if (p.mode === 'feint') {
+      // 振り向いて投げるふりをし、ホームに向き直る。そのまますぐ投球することが多い
+      turnTo(p, p.t < FEINT_HOLD ? faceTo(target.x - M.x, target.y - M.y) : Math.PI, dt, 0.07);
+      if (!p.faked && p.t >= PICK_TELL + 0.15) {
+        p.faked = true;
+        state.cue = { text: t('cue.fake'), color: '#ffab40', t: 0 };
+      }
+      if (p.t >= FEINT_END) {
+        const h = state.fielders[HOLDER[state.from]];
+        if (state.from !== 1 && h.home) h.goal = { x: h.home.x, y: h.home.y };
+        const quick = Math.random() < FEINT_QUICK;
+        Object.assign(p, { mode: 'set', t: 0, face: Math.PI, setT: quick ? rand(0.12, 0.4) : rand(1.2, 2.6) });
+      }
     } else if (p.mode === 'pickoff') {
-      const target = B[state.from];
-      const want = faceTo(target.x - M.x, target.y - M.y);
-      p.face += (want - p.face) * Math.min(1, dt / 0.06);
+      turnTo(p, faceTo(target.x - M.x, target.y - M.y), dt, 0.06);
       if (!p.thrown && p.t >= p.rel) {
         p.thrown = true;
         const hold = state.fielders[HOLDER[state.from]];
@@ -476,9 +492,16 @@
     }
   }
 
-  function startPickoff() {
+  // 向きを少しずつ変える(遠回りしないよう角度の差を -π〜π にする)
+  function turnTo(p, want, dt, tau) {
+    const d = ((want - p.face) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
+    p.face += d * Math.min(1, dt / tau);
+  }
+
+  // 本物の牽制も偽投も、振り向くところまでは同じに見える
+  function startPickoff(feint) {
     const p = state.pitcher;
-    Object.assign(p, { mode: 'pickoff', t: 0, rel: PICK_TELL, thrown: false, picks: p.picks + 1 });
+    Object.assign(p, { mode: feint ? 'feint' : 'pickoff', t: 0, rel: PICK_TELL, thrown: false, faked: false, picks: p.picks + 1 });
     const h = state.fielders[HOLDER[state.from]];
     // 二塁はショートがベースに入る
     if (state.from !== 1) h.goal = nearBase(state.from, M, 0.5);
@@ -833,7 +856,7 @@
       const q = bt.quick < 0.98 ? t('bat.quickFast') : bt.quick > 1.07 ? t('bat.quickSlow') : t('bat.quickMid');
       const pk = bt.pick > 1.25 ? t('bat.pickMany') : bt.pick < 0.85 ? t('bat.pickFew') : t('bat.pickMid');
       const a = bt.arm < 0.97 ? t('bat.armStrong') : bt.arm > 1.05 ? t('bat.armWeak') : t('bat.armMid');
-      ctx.fillText(t('bat.line', { q, p: pk, a }), 24, 86, 276);
+      ctx.fillText(t('bat.line', { q, p: pk + (bt.feint > 0.33 ? t('bat.fakeMany') : ''), a }), 24, 86, 276);
     }
     // スタミナ
     const r = state.runner;
@@ -1033,14 +1056,15 @@
     ctx.fillStyle = 'rgba(8,14,20,0.45)';
     ctx.fillRect(0, 0, W, H);
     const k = Math.min(U, 1.4);
-    centerText(t('title.name'), 190, 84 * Math.min(U, 1.25), '#ffe14d', '900');
-    centerText(t('title.sub'), 190 + 62 * k, 26 * k);
-    if (state.best) centerText(t('title.best', { n: state.best.steals, h: state.best.home }), 190 + 112 * k, 22 * k, '#9fe8ff');
+    // 上から: タイトル / 説明 / ベスト / タップでプレイボール / (HTML の「遊び方」ボタン: 高さ 67%〜) / 音の注意
+    centerText(t('title.name'), H * 0.24, 84 * Math.min(U, 1.25), '#ffe14d', '900');
+    centerText(t('title.sub'), H * 0.37, 26 * k);
+    if (state.best) centerText(t('title.best', { n: state.best.steals, h: state.best.home }), H * 0.455, 22 * k, '#9fe8ff');
     ctx.save();
     ctx.globalAlpha = 0.55 + 0.45 * Math.abs(Math.sin(state.time * 3));
-    centerText(t(isTouch ? 'title.start.touch' : 'title.start.key'), H - 140, 34 * k, '#ffffff');
+    centerText(t(isTouch ? 'title.start.touch' : 'title.start.key'), H * 0.59, 34 * k, '#ffffff');
     ctx.restore();
-    centerText(t('title.sound'), H - 92, 15 * k, '#cfd8dc', 'normal');
+    centerText(t(isTouch ? 'title.sound.touch' : 'title.sound'), H * 0.865, 15 * k, '#cfd8dc', 'normal');
   }
 
   // 遊び方(タイトル画面の「遊び方」ボタンで開く別画面)

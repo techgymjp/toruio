@@ -888,6 +888,17 @@ window.Scene3D = (() => {
         r.armR.rotation.x = lerp(4.3, 5.4, v); r.armL.rotation.x = -0.6;
         r.body.rotation.x = 0.25 + 0.25 * v;
       }
+    } else if (pc.mode === 'feint') {
+      // 投げるふり: 腕を振りかけて止め、下ろす
+      const u = t / pc.rel;
+      r.armL.rotation.x = -1.3;
+      if (u < 1) r.armR.rotation.x = lerp(0, 1.9, u);
+      else {
+        const v = clamp01((t - pc.rel) / 0.12), w = clamp01((t - pc.rel - 0.2) / 0.3);
+        r.armR.rotation.x = lerp(lerp(1.9, 3.0, v), 0.3, w);
+      }
+      r.body.rotation.x = u < 1 ? -0.05 : 0.15;
+      r.legR.rotation.x = 0.3;
     } else if (pc.mode === 'pickoff') {
       const u = t / pc.rel;
       r.armL.rotation.x = -1.3;
