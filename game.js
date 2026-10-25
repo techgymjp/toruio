@@ -368,8 +368,13 @@
         const vmax = (input.dash ? V_DASH : V_JOG) * sf;
         r.v = r.v < vmax ? Math.min(vmax, r.v + ACC * dt) : Math.max(vmax, r.v - 4 * dt);
         r.s += r.v * dt;
-        // スライディングしないと手前で減速して止まる
-        if (remain() <= r.v * r.v / (2 * BRAKE) + 0.15) r.mode = 'brake';
+        if (state.to === 0) {
+          // 本塁は踏めば得点なので駆け抜けてよい(踏んだあとは流して止まる)
+          if (!r.touched && remain() <= 0.5) touch(r); // 足を伸ばしてベースを踏む(二塁・三塁で立ったまま着くときと同じ)
+          if (r.touched) r.v = Math.max(0, r.v - 8 * dt);
+        } else if (remain() <= r.v * r.v / (2 * BRAKE) + 0.15) {
+          r.mode = 'brake'; // 二塁・三塁は滑らないと手前で減速して止まる
+        }
         break;
       }
       case 'brake':
@@ -396,7 +401,7 @@
         }
         if (!r.touched && remain() <= TOUCH) {
           touch(r);
-          if (r.mode === 'head') {
+          if (r.mode === 'head' && state.to !== 0) { // 本塁は触れれば得点なのでオーバースライドなし
             if (r.v > HEAD_GRIP) {
               // 勢いがありすぎて手が離れる
               r.overslid = true;
@@ -434,7 +439,8 @@
     const v0 = v + HEAD_BOOST, v1 = v0 - AIR_DRAG * HEAD_AIR;
     const air = (v0 + v1) / 2 * HEAD_AIR;
     const far = air + v1 * v1 / (2 * HEAD_DEC) + HEAD_REACH - TOUCH;
-    const near = air + Math.max(0, v1 * v1 - HEAD_GRIP * HEAD_GRIP) / (2 * HEAD_DEC) + HEAD_REACH - TOUCH;
+    // 本塁はオーバースライドがないので、塁の直前まで押してよい
+    const near = state.to === 0 ? 0.3 : air + Math.max(0, v1 * v1 - HEAD_GRIP * HEAD_GRIP) / (2 * HEAD_DEC) + HEAD_REACH - TOUCH;
     return { far, near };
   }
   function feetPlan(v) {
@@ -596,6 +602,8 @@
   function updateTag() {
     if (state.phase !== 'run' || state.judged) return;
     const id = COVER[state.to], f = fielder(id), r = state.runner;
+    // 本塁はタッチされる前に踏めばその場で得点(セーフ)
+    if (state.to === 0 && r.touched && !state.tagReady) { finish(true); return; }
     if (state.ball.holder !== id) return;
     const spot = id === 'catcher' ? { x: -0.7, y: 0.6 } : nearBase(state.to, B[0], 0.5);
     if (!state.tagReady && Math.hypot(f.x - spot.x, f.y - spot.y) < 0.35 && !f.goal) {
@@ -780,7 +788,7 @@
       if (state.phaseT > 0.9 && r.mode !== 'safe' && r.mode !== 'out' && r.v < 0.05 && !(r.air > 0)) {
         // 起き上がる。セーフならベースの上に乗る(滑った姿勢のままだと足の位置がベースの手前に残る)
         const safe = state.result.safe;
-        const goal = safe && r.touched ? BL - 0.1 : Math.min(tip(r), BL + 1) - 0.3;
+        const goal = safe && r.touched ? (state.to === 0 ? Math.max(r.s, BL - 0.1) : BL - 0.1) : Math.min(tip(r), BL + 1) - 0.3;
         r.mode = safe ? 'safe' : 'out'; r.v = 0; r.z = 0;
         r.standFrom = r.s; r.standTo = safe ? goal : Math.max(r.s, goal); r.standT = 0;
       }
