@@ -985,9 +985,17 @@
     return ready;
   }
 
+  // 押しどきに入った時刻(点滅は必ず「点いた状態」から始める。ヘッドの押しどきは 0.15 秒ほどしかないため)
+  const readySince = { head: null, feet: null };
+  const BLINK = 0.09;
+
   function drawControls() {
     ctx.save();
     const ready = slideReady();
+    for (const k of ['head', 'feet']) {
+      if (!ready[k]) readySince[k] = null;
+      else if (readySince[k] == null) readySince[k] = state.time;
+    }
     for (const [name, b] of Object.entries(BTN)) {
       const on = holding(name) || (name === 'lead' && input.lead) || (name === 'dash' && input.dash);
       const active = name === 'lead' ? state.phase === 'lead'
@@ -1000,17 +1008,19 @@
       const r = b.r0;
       ctx.globalAlpha = active ? 0.92 : 0.45;
       const col = { lead: '255,225,77', dash: '255,138,101', head: '255,171,64', feet: '105,240,174' }[name];
+      const lit = ready[name] && Math.floor((state.time - readySince[name]) / BLINK) % 2 === 0;
       if (ready[name]) {
-        // 押しどき: 光の輪を脈打たせ、上に「今!」
-        const pulse = 0.5 + 0.5 * Math.sin(state.time * 18);
+        // 押しどき: ボタンと光の輪を点滅させ、「今!」を出す
         ctx.globalAlpha = 1;
-        ctx.save();
-        ctx.shadowColor = `rgb(${col})`;
-        ctx.shadowBlur = 24 + pulse * 16;
-        ctx.strokeStyle = `rgba(${col},${0.7 + 0.3 * pulse})`;
-        ctx.lineWidth = 8;
-        ctx.beginPath(); ctx.arc(0, 0, r + 8 + pulse * 5, 0, Math.PI * 2); ctx.stroke();
-        ctx.restore();
+        if (lit) {
+          ctx.save();
+          ctx.shadowColor = `rgb(${col})`;
+          ctx.shadowBlur = 36;
+          ctx.strokeStyle = `rgb(${col})`;
+          ctx.lineWidth = 9;
+          ctx.beginPath(); ctx.arc(0, 0, r + 10, 0, Math.PI * 2); ctx.stroke();
+          ctx.restore();
+        }
         // ヘッドスライディングは上に右上の図があるので、左側に出す
         const [nx, ny, al] = name === 'head' ? [-r - 18, 10, 'right'] : [0, -r - 18, 'center'];
         ctx.font = '900 26px sans-serif';
@@ -1021,10 +1031,10 @@
         ctx.fillStyle = `rgb(${col})`;
         ctx.fillText(t('btn.now'), nx, ny);
       }
-      ctx.fillStyle = on ? `rgba(${col},0.9)` : ready[name] ? `rgba(${col},0.55)` : 'rgba(0,0,0,0.45)';
+      ctx.fillStyle = on || lit ? `rgba(${col},0.95)` : 'rgba(0,0,0,0.45)';
       ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = `rgba(${col},0.95)`; ctx.lineWidth = 4; ctx.stroke();
-      ctx.fillStyle = on ? '#222' : '#fff';
+      ctx.fillStyle = on || lit ? '#222' : '#fff';
       ctx.textAlign = 'center';
       const lines = t(b.label).split('\n');
       const fs = name === 'lead' ? 28 : name === 'dash' ? 24 : 17;
