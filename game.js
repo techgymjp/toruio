@@ -59,9 +59,9 @@
   // ボタンの配置は画面の角からの距離(dx: 左右の端から, dy: 下端から)。スマホでは UI 全体を U 倍に大きくする
   const BTN = {
     lead: { dx: 140, dy: 135, r0: 96, left: true, label: 'btn.lead', key: 'Space / Z', hold: true },
-    dash: { dx: 102, dy: 98, r0: 70, label: 'btn.dash', key: 'Shift / X', hold: true },
+    dash: { dx: 100, dy: 82, r0: 70, label: 'btn.dash', key: 'Shift / X', hold: true },
     // 右手の親指で: ダッシュ(右下)、その上にヘッドスライディング、左にスライディング(画面の真ん中を空ける)
-    head: { dx: 102, dy: 222, r0: 54, label: 'btn.head', key: 'V / ↑' },
+    head: { dx: 100, dy: 212, r0: 54, label: 'btn.head', key: 'V / ↑' },
     feet: { dx: 240, dy: 62, r0: 56, label: 'btn.feet', key: 'C / ↓' },
   };
   const MUTE = { x: 596, y: 36, r: 22 };
@@ -716,7 +716,8 @@
       else lock();
     } catch (e) { /* 非対応 */ }
   }
-  canvas.addEventListener('pointerup', () => { if (state.phase === 'title' || state.phase === 'over') goLandscape(); });
+  // タップで全画面に戻す(アプリの切り替えなどで全画面が解除されたとき、プレイ中でも戻れるように)
+  canvas.addEventListener('pointerup', () => goLandscape());
 
   function togglePause() {
     if (state.phase === 'title' || state.phase === 'over') return;
@@ -1125,7 +1126,7 @@
     const { x, y, r } = MUTE;
     ctx.save();
     ctx.translate(x, y); ctx.scale(U, U); ctx.translate(-x, -y);
-    if (!Sound.muted && !Sound.ready && state.phase !== 'title' && state.phase !== 'over') {
+    if (!Sound.muted && !Sound.ready && !state.paused && state.phase !== 'title' && state.phase !== 'over') {
       ctx.fillStyle = 'rgba(0,0,0,0.55)';
       ctx.fillRect(x - 84, y + 26, 168, 24);
       ctx.fillStyle = '#ffe14d';
@@ -1155,12 +1156,12 @@
     ctx.setTransform(overlayScale, 0, 0, overlayScale, 0, 0);
     ctx.clearRect(0, 0, W, H);
     if (state.phase !== 'title') {
-      drawCue();
+      if (!state.paused) drawCue();
       ctx.save(); ctx.scale(U, U); drawHUD(); ctx.restore();
       ctx.save(); ctx.translate(W, 0); ctx.scale(Math.min(U, 1.25), Math.min(U, 1.25)); ctx.translate(-W, 0); drawDiamond(); ctx.restore();
       drawMeter();
       drawControls();
-      ctx.save(); ctx.translate(W / 2, 0); ctx.scale(Math.min(U, 1.25), Math.min(U, 1.25)); ctx.translate(-W / 2, 0); drawPopups(); ctx.restore();
+      ctx.save(); ctx.translate(W / 2, 0); ctx.scale(Math.min(U, 1.25), Math.min(U, 1.25)); ctx.translate(-W / 2, 0); if (!state.paused) drawPopups(); ctx.restore();
       if (state.phase === 'ready' && !state.paused) {
         if (state.from === 1) {
           centerText(t('ready.ch', { n: state.challenge + 1 }), 230, 46, '#ffffff', '900');
@@ -1272,7 +1273,7 @@
 
   const pauseEl = $id('pauseMenu');
   for (const ev of ['pointerdown', 'pointerup']) pauseEl.addEventListener(ev, (e) => e.stopPropagation());
-  $id('pauseResume').addEventListener('click', () => { audio(); if (state.paused) togglePause(); });
+  $id('pauseResume').addEventListener('click', () => { audio(); goLandscape(); if (state.paused) togglePause(); });
   $id('pauseTitle').addEventListener('click', () => { audio(); if (state.paused) goTitle(); });
   function updatePauseMenu() {
     const show = state.paused && !isPortrait() && state.phase !== 'title' && state.phase !== 'over';
