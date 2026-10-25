@@ -699,9 +699,12 @@ window.Scene3D = (() => {
     r.body.position.set(0, 0, 0);
     for (const l of [r.armL, r.armR, r.legL, r.legR]) l.rotation.set(0, 0, 0);
   }
-  function runPose(r, speed, time) {
+  // 足の振りの位相は毎フレーム積み上げる(経過時間×速さで計算すると、減速中に位相が飛んで足がばたつく)
+  let frameDt = 0;
+  function runPose(r, speed) {
     const swing = Math.min(1, speed / 6) * 0.95;
-    const ph = time * (6 + speed * 1.3);
+    r.ph = (r.ph || 0) + frameDt * (6 + speed * 1.3);
+    const ph = r.ph;
     r.legL.rotation.x = Math.sin(ph) * swing;
     r.legR.rotation.x = -Math.sin(ph) * swing;
     r.armL.rotation.x = -Math.sin(ph) * swing * 0.9;
@@ -733,9 +736,8 @@ window.Scene3D = (() => {
         break;
       }
       case 'base': readyPose(r, 0.7); break;
-      case 'back': case 'run': case 'brake': case 'crawl':
-        runPose(r, rn.mode === 'crawl' ? 3 : rn.v, time);
-        if (rn.mode === 'crawl') { r.body.rotation.x = 0.9; r.body.position.y = -0.3; }
+      case 'back': case 'run': case 'brake':
+        runPose(r, rn.v);
         break;
       case 'head': case 'down': case 'diveBack': case 'downBack': {
         const k = rn.mode === 'down' || rn.mode === 'downBack' ? 1 : p;
@@ -744,6 +746,11 @@ window.Scene3D = (() => {
         r.armL.rotation.x = -2.95 * k; r.armR.rotation.x = -2.85 * k;
         r.armL.rotation.z = 0.15 * k; r.armR.rotation.z = -0.15 * k;
         r.legL.rotation.x = 0.25 * k; r.legR.rotation.x = 0.1 * k;
+        if (rn.crawling) {
+          // 腕を交互に伸ばしてベースに手を届かせる(足は動かさない)
+          const c = Math.sin(time * 9) * 0.25;
+          r.armL.rotation.x += c; r.armR.rotation.x -= c;
+        }
         runnerShadow.scale.set(1, 1, 2.2);
         break;
       }
@@ -777,7 +784,7 @@ window.Scene3D = (() => {
     place(r, f.x, f.y, f.face);
     const t = f.t || 0;
     switch (f.mode) {
-      case 'run': runPose(r, f.v || 6, time); break;
+      case 'run': runPose(r, f.v || 6); break;
       case 'catch':
         readyPose(r, 0.4);
         r.armL.rotation.x = -1.7; r.armL.rotation.z = -0.3;
@@ -884,6 +891,7 @@ window.Scene3D = (() => {
 
   function render(state, dt) {
     if (!ready) return;
+    frameDt = state.paused ? 0 : dt;
     updateScoreboard(state);
     updateFireworks(dt);
     adaptQuality(dt);

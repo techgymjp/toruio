@@ -271,7 +271,7 @@
     r.x = a.x + d.x * r.s; r.y = a.y + d.y * r.s;
     const fwd = faceTo(d.x, d.y), bwd = faceTo(-d.x, -d.y);
     switch (r.mode) {
-      case 'run': case 'brake': case 'head': case 'feet': case 'down': case 'crawl': r.face = fwd; break;
+      case 'run': case 'brake': case 'head': case 'feet': case 'down': r.face = fwd; break;
       case 'back': case 'diveBack': case 'downBack': r.face = bwd; break;
       case 'safe': case 'out': r.face = faceTo(M.x - r.x, M.y - r.y); break;
       default: r.face = faceTo(M.x - r.x, M.y - r.y); // 投手を見ながらリード
@@ -362,7 +362,12 @@
         r.prog += dt / SLIDE_T;
         r.v = Math.max(0, r.v - (r.mode === 'head' ? HEAD_DEC : FEET_DEC) * dt);
         r.s += r.v * dt;
+        if (r.crawling && !r.touched) {
+          r.crawlWait -= dt;
+          if (r.crawlWait <= 0) r.s += CRAWL_V * dt;
+        }
         if (!r.touched && remain() <= TOUCH) touch(r);
+        if (r.touched) r.crawling = false;
         if (r.mode === 'feet' && tip(r) >= BL + 0.05) {
           // 足がベースに引っかかって止まる
           r.s = BL + 0.05 - FEET_REACH * Math.min(1, r.prog); r.v = 0;
@@ -374,13 +379,15 @@
         if (r.v <= 0 && r.prog >= 1) {
           r.t = 0;
           // 届かなければ起き上がって這う
-          if (!r.touched) { r.mode = 'crawl'; r.crawlWait = 0.3; } else if (r.mode === 'head') r.mode = 'down';
+          // 届かなければ滑った姿勢のまま手(足)を伸ばしてにじり寄る
+          if (!r.touched) { r.crawling = true; r.crawlWait = 0.25; }
+          if (r.mode === 'head') r.mode = 'down';
         }
         break;
       }
-      case 'crawl': case 'down':
-        if (!r.touched) {
-          r.crawlWait = (r.crawlWait || 0) - dt;
+      case 'down':
+        if (r.crawling && !r.touched) {
+          r.crawlWait -= dt;
           if (r.crawlWait <= 0) r.s += CRAWL_V * dt;
           if (remain() <= TOUCH) touch(r);
         }
@@ -534,7 +541,7 @@
     if (!state.tagReady || state.phaseT < state.tagT) return;
     if (onBase(r)) { finish(true); return; }
     // 先にタッチの構えができている: ランナーが来たらアウト
-    const stopped = r.v <= 0 && (r.mode === 'down' || r.mode === 'feet' || r.mode === 'crawl');
+    const stopped = r.v <= 0 && (r.mode === 'down' || r.mode === 'feet');
     if (r.overslid || BL - tip(r) < 1.6 || (stopped && !r.touched)) finish(false, 'cs');
   }
   // 判定がきわどくなりそうならスローモーション
@@ -689,7 +696,7 @@
       updatePitcher(dt);
       updateTag();
     } else if (state.phase === 'result') {
-      if (r.mode === 'head' || r.mode === 'feet' || r.mode === 'run' || r.mode === 'brake' || r.mode === 'crawl') {
+      if (r.mode === 'head' || r.mode === 'feet' || r.mode === 'run' || r.mode === 'brake') {
         // 判定後も勢いのぶんだけ滑る
         r.prog += dt / SLIDE_T;
         r.v = Math.max(0, r.v - 14 * dt);
