@@ -177,6 +177,8 @@
     p1b: { x: 21.5, y: 27 }, p2b: { x: 9, y: 39 }, pss: { x: -9, y: 39 }, p3b: { x: -21, y: 25 },
     plf: { x: -48, y: 80 }, pcf: { x: 0, y: 95 }, prf: { x: 48, y: 80 },
   };
+  // ホームスチールで捕手がタッチに構える位置。三塁線(走者が駆け抜ける線)から内野側に 0.85m ずらす
+  const HOME_TAG = { x: 0.35, y: 0.95 };
   const COVER = { 2: 'pss', 3: 'p3b', 0: 'catcher' }; // 盗塁のときベースに入る野手
   const HOLDER = { 1: 'p1b', 2: 'pss', 3: 'p3b' };    // 牽制球を受ける野手
 
@@ -571,7 +573,7 @@
     const extra = state.pitchDirt ? 0.3 : 0;
     if (state.to === 0) {
       // ホームスチール: 捕ったら三塁線側に出てタッチ
-      later(0.12 + extra, () => { c.goal = { x: -0.7, y: 0.6 }; c.mode = 'stand'; c.speed = 5; });
+      later(0.12 + extra, () => { c.goal = { ...HOME_TAG }; c.mode = 'stand'; c.speed = 5; });
       return;
     }
     const tr = TRANSFER * state.battery.arm + extra + (state.to === 3 ? 0.3 : 0);
@@ -605,7 +607,7 @@
     // 本塁はタッチされる前に踏めばその場で得点(セーフ)
     if (state.to === 0 && r.touched && !state.tagReady) { finish(true); return; }
     if (state.ball.holder !== id) return;
-    const spot = id === 'catcher' ? { x: -0.7, y: 0.6 } : nearBase(state.to, B[0], 0.5);
+    const spot = id === 'catcher' ? HOME_TAG : nearBase(state.to, B[0], 0.5);
     if (!state.tagReady && Math.hypot(f.x - spot.x, f.y - spot.y) < 0.35 && !f.goal) {
       state.tagReady = true;
       state.tagT = state.phaseT + TAG_T;
@@ -1260,7 +1262,9 @@
   // ---------- シェア(結果画面) ----------
   const $id = (id) => document.getElementById(id);
   const shareEl = $id('share');
-  const shareUrl = () => (/^https?:/.test(location.protocol) ? location.origin + location.pathname : '');
+  // シェアに付ける紹介記事
+  const SHARE_URL = 'https://techgym.jp/column/claude-code-game-toruio/';
+  const shareUrl = () => SHARE_URL;
 
   // 塁ごとの成功率(挑戦していなければ -)
   function pct(to) {
