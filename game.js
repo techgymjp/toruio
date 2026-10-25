@@ -1254,9 +1254,15 @@
   const shareEl = $id('share');
   const shareUrl = () => (/^https?:/.test(location.protocol) ? location.origin + location.pathname : '');
 
+  // 塁ごとの成功率(挑戦していなければ -)
+  function pct(to) {
+    const ok = { 2: state.s2, 3: state.s3, 0: state.home }[to], n = state.tries[to];
+    return n ? Math.round(ok / n * 100) + '%' : '-';
+  }
+
   function shareText() {
     const [rank] = rankOf(state.steals);
-    return t('share.text', { n: state.steals, h: state.home, r: rank, k: state.bestStreak, t: TOTAL });
+    return t('share.text', { n: state.steals, h: state.home, r: rank, k: state.bestStreak, t: TOTAL, a: pct(2), b: pct(3), c: pct(0) });
   }
   function prepareShare() {
     const text = shareText(), url = shareUrl();
@@ -1282,9 +1288,16 @@
     const [rank] = rankOf(state.steals);
     g.fillStyle = '#ff9d3c'; g.font = font(900, 52); g.fillText(t('card.rank', { r: rank }), 600, 335, 1100);
     g.fillStyle = '#ffffff'; g.font = font(800, 38);
-    g.fillText(t('card.line1', { a: state.s2, b: state.s3, h: state.home }), 600, 420, 1100);
-    g.fillText(t('card.line2', { k: state.bestStreak, t: TOTAL }), 600, 485, 1100);
-    g.fillStyle = '#fff8e8'; g.font = font(700, 28); g.fillText(t('card.tags'), 600, 590);
+    // 二盗・三盗・ホームスチールの成功率を 3 列で
+    [[2, 'card.s2', state.s2], [3, 'card.s3', state.s3], [0, 'card.home', state.home]].forEach(([to, key, ok], i) => {
+      const x = 240 + i * 360;
+      g.fillStyle = '#cfe8ff'; g.font = font(800, 30); g.fillText(t(key), x, 400, 330);
+      g.fillStyle = '#ffffff'; g.font = font(900, 54); g.fillText(pct(to), x, 455, 330);
+      g.fillStyle = '#e0e0e0'; g.font = font(700, 26); g.fillText(`${ok} / ${state.tries[to]}`, x, 500, 330);
+    });
+    g.fillStyle = '#ffffff'; g.font = font(800, 32);
+    g.fillText(t('card.line2', { k: state.bestStreak, t: TOTAL }), 600, 548, 1100);
+    g.fillStyle = '#fff8e8'; g.font = font(700, 26); g.fillText(t('card.tags'), 600, 600);
     return new Promise((res) => c.toBlob(res, 'image/png'));
   }
   async function shareResult() {
@@ -1429,6 +1442,6 @@
       state.from = from; state.to = (from + 1) % 4;
       setupField(); placeRunner(); setPhase('ready');
     },
-    tip, headPlan, feetPlan, slideReady,
+    tip, headPlan, feetPlan, slideReady, makeShareImage, shareText,
   };
 })();
