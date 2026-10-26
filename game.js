@@ -36,9 +36,25 @@
   const DT = 1 / 120;
   const t = (k, v) => I18N.t(k, v);
 
+  // Android アプリ(Capacitor)で動いているか。Web 版では Capacitor がないので何もしない
+  const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  const plugin = (name) => (NATIVE && window.Capacitor.Plugins ? window.Capacitor.Plugins[name] : null);
+
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
-  const rand = (a, b) => a + (b - a) * Math.random();
+  // 乱数。1 回の挑戦(塁)ごとにゲームの種から作り直す(広告を見てやり直すとき、同じ投手の動きを再現するため)
+  function mulberry32(seed) {
+    let a = seed >>> 0;
+    return () => {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let x = a;
+      x = Math.imul(x ^ (x >>> 15), x | 1);
+      x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
+      return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  let rng = Math.random;
+  const rand = (a, b) => a + (b - a) * rng();
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
   // ---------- 保存 ----------
@@ -75,9 +91,10 @@
     if (!keys.has(k)) {
       if (isKey(k, 'v', 'ArrowUp')) pressed.head = true;
       if (isKey(k, 'c', 'ArrowDown')) pressed.feet = true;
-      if (state.phase === 'title' && (k === 'h' || (state.help && isKey(k, ' ', 'Enter', 'Escape')))) setHelp(!state.help);
+      if (state.phase === 'title' && !state.help && k === 'h') setHelp(true);
+      else if (state.phase === 'title' && state.help && isKey(k, 'h', ' ', 'Enter', 'Escape')) closeHelp();
       else if (isKey(k, ' ', 'Enter') && (state.phase === 'title' || state.phase === 'over')) pressed.start = true;
-      if (isKey(k, 'p', 'Escape')) togglePause();
+      if (isKey(k, 'p', 'Escape')) { if (state.paused) resumeGame(); else togglePause(); }
       if (k === 'm') Sound.setMuted(!Sound.muted);
     }
     keys.add(k);
@@ -108,12 +125,9 @@
       pointers.set(e.pointerId, 'none');
       return;
     }
-    if (state.phase === 'title' && state.help) { setHelp(false); pointers.set(e.pointerId, 'none'); return; }
-    if (state.phase === 'title' || state.phase === 'over') {
-      if (state.phase !== 'over' || state.overT > 1.0) pressed.start = true;
-      pointers.set(e.pointerId, 'none');
-      return;
-    }
+    // タイトル・結果画面は HTML のボタンで操作する(広告が出るので、画面のどこかに触れただけでは始めない)
+    if (state.phase === 'title' && state.help) { closeHelp(); pointers.set(e.pointerId, 'none'); return; }
+    if (state.phase === 'title' || state.phase === 'over') { pointers.set(e.pointerId, 'none'); return; }
     if (state.paused) { pointers.set(e.pointerId, 'none'); return; }
     const b = hitButton(p);
     if (b === 'head') pressed.head = true;
@@ -223,7 +237,9 @@
   }
 
   function newGame() {
+    closeRedo();
     Object.assign(state, {
+      seed: (Date.now() ^ (Math.random() * 1e9)) >>> 0, redoUsed: 0, help: false,
       paused: false, challenge: 0, steals: 0, home: 0, s2: 0, s3: 0, pickOuts: 0, csOuts: 0, tries: { 2: 0, 3: 0, 0: 0 },
       streak: 0, bestStreak: 0, popups: [], newRecord: false, overT: 0,
     });
@@ -233,8 +249,18 @@
   function startChallenge() {
     state.from = 1; state.to = 2;
     state.runner = newRunner();
+    rng = mulberry32(state.seed + state.challenge * 7919);
     state.battery = newBattery();
+    startAttempt();
+  }
+
+  // 1 回の挑戦(ある塁への盗塁)を始める。やり直し用にその時点の状態を覚えておく
+  function startAttempt() {
     state.result = null;
+    state.redoOffered = false;
+    state.snap = { stamina: state.runner.stamina, streak: state.streak };
+    rng = mulberry32(state.seed + state.challenge * 7919 + (state.to + 1) * 104729);
+    timers = [];
     setupField();
     placeRunner();
     setPhase('ready');
@@ -468,7 +494,7 @@
     p.t += dt;
     const target = B[state.from];
     if (p.mode === 'set') {
-      if (p.picks < PICK_MAX && p.t > 0.6 && Math.random() < pickoffRate(r.s) * dt) startPickoff(Math.random() < state.battery.feint);
+      if (p.picks < PICK_MAX && p.t > 0.6 && rng() < pickoffRate(r.s) * dt) startPickoff(rng() < state.battery.feint);
       else if (p.t >= p.setT) startDelivery();
     } else if (p.mode === 'feint') {
       // 振り向いて投げるふりをし、ホームに向き直る。そのまますぐ投球することが多い
@@ -480,7 +506,7 @@
       if (p.t >= FEINT_END) {
         const h = state.fielders[HOLDER[state.from]];
         if (state.from !== 1 && h.home) h.goal = { x: h.home.x, y: h.home.y };
-        const quick = Math.random() < FEINT_QUICK;
+        const quick = rng() < FEINT_QUICK;
         Object.assign(p, { mode: 'set', t: 0, face: Math.PI, setT: quick ? rand(0.12, 0.4) : rand(1.2, 2.6) });
       }
     } else if (p.mode === 'pickoff') {
@@ -494,7 +520,7 @@
     } else if (p.mode === 'deliver') {
       if (!p.thrown && p.t >= p.rel) {
         p.thrown = true;
-        const dirt = Math.random() < 0.08;
+        const dirt = rng() < 0.08;
         state.pitchDirt = dirt;
         throwBall({ x: 0, y: -0.7 }, PITCH_V, dirt ? -0.6 : 0.15, pitchArrive, dirt ? 0.25 : 0.9);
       }
@@ -581,7 +607,7 @@
     later(tr, () => {
       state.throwOut = true;
       const f = state.fielders[COVER[state.to]];
-      const bad = Math.random() < 0.06;
+      const bad = rng() < 0.06;
       let tgt = { x: f.goal ? f.goal.x : f.x, y: f.goal ? f.goal.y : f.y };
       if (bad) {
         // 悪送球: 野手が取りに行ってから戻るので遅れる
@@ -715,12 +741,12 @@
   }
 
   // ---------- 更新 ----------
-  const isTouch = window.matchMedia('(pointer: coarse)').matches;
+  const isTouch = NATIVE || window.matchMedia('(pointer: coarse)').matches;
   const portraitMQ = window.matchMedia('(orientation: portrait)');
   const isPortrait = () => isTouch && portraitMQ.matches;
 
   function goLandscape() {
-    if (!isTouch) return;
+    if (!isTouch || NATIVE) return; // アプリは AndroidManifest で横画面・全画面にしている
     const el = document.documentElement;
     const lock = () => { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {}); };
     try {
@@ -739,12 +765,12 @@
   function update(dt) {
     state.time += dt;
     if (state.phase === 'title') {
-      if (pressed.start) { pressed.start = false; newGame(); }
+      if (pressed.start) { pressed.start = false; withAd(startGame); }
       return;
     }
     if (state.phase === 'over') {
       state.overT += dt;
-      if (pressed.start && state.overT > 1.0) { pressed.start = false; newGame(); }
+      if (pressed.start && state.overT > 1.0) { pressed.start = false; withAd(startGame); }
       pressed.start = false;
       return;
     }
@@ -754,6 +780,7 @@
 
     readInput();
     state.phaseT += dt;
+    updateRedo(dt);
     runTimers();
     const r = state.runner;
     if (state.cue) state.cue.t += dt;
@@ -799,7 +826,9 @@
         const e = 1 - (1 - r.standT) * (1 - r.standT);
         r.s = r.standFrom + (r.standTo - r.standFrom) * e;
       }
-      if (state.phaseT >= 2.4) nextAfterResult();
+      // 失敗したら、結果を見届けてから「広告を見てやり直す」を出す(アプリのみ)
+      if (!state.result.safe && !state.redoOffered && state.phaseT >= 2.2) { state.redoOffered = true; offerRedo(); }
+      if (state.phaseT >= 2.4 && !redo.active) nextAfterResult();
     }
     pressed.head = pressed.feet = false;
     updateBall(dt);
@@ -819,9 +848,7 @@
       state.to = (state.to + 1) % 4;
       const st = state.runner.stamina;
       state.runner = newRunner(st);
-      setupField();
-      placeRunner();
-      setPhase('ready');
+      startAttempt();
       return;
     }
     state.challenge++;
@@ -1125,15 +1152,12 @@
     ctx.fillStyle = 'rgba(8,14,20,0.45)';
     ctx.fillRect(0, 0, W, H);
     const k = Math.min(U, 1.4);
-    // 上から: タイトル / 説明 / ベスト / タップでプレイボール / (HTML の「遊び方」ボタン: 高さ 67%〜) / 音の注意
+    // 上から: タイトル / 説明 / ベスト / (HTML の「プレイボール」「遊び方」ボタン: 高さ 56%〜) / 音の注意
     centerText(t('title.name'), H * 0.24, 84 * Math.min(U, 1.25), '#ffe14d', '900');
     centerText(t('title.sub'), H * 0.37, 26 * k);
     if (state.best) centerText(t('title.best', { n: state.best.steals, h: state.best.home }), H * 0.455, 22 * k, '#9fe8ff');
-    ctx.save();
-    ctx.globalAlpha = 0.55 + 0.45 * Math.abs(Math.sin(state.time * 3));
-    centerText(t(isTouch ? 'title.start.touch' : 'title.start.key'), H * 0.59, 34 * k, '#ffffff');
-    ctx.restore();
-    centerText(t(isTouch ? 'title.sound.touch' : 'title.sound'), H * 0.865, 15 * k, '#cfd8dc', 'normal');
+    // アプリでは下の真ん中にバナー広告が出るので、音の注意は出さない
+    if (!NATIVE) centerText(t(isTouch ? 'title.sound.touch' : 'title.sound'), H * 0.865, 15 * k, '#cfd8dc', 'normal');
   }
 
   // 遊び方(タイトル画面の「遊び方」ボタンで開く別画面)
@@ -1143,7 +1167,8 @@
     const k = Math.min(U, 1.4);
     centerText(t('help.title'), 62 * k, 40 * k, '#ffe14d', '900');
     const lines = [1, 2, 3, 4, 5, 6].map((i) => t(`help.${isTouch ? 'touch' : 'key'}.${i}`));
-    const top = 62 * k + 30 * k, gap = Math.min(64, (H - 70 * k - top) / lines.length);
+    // 下は HTML の「プレイボール」「もどる」ボタン(とアプリではバナー広告)
+    const top = 62 * k + 26 * k, gap = Math.min(60, (H * 0.63 - top) / lines.length);
     ctx.textAlign = 'left';
     const x0 = Math.max(24, W / 2 - 560 * Math.min(k, 1.2));
     lines.forEach((l, i) => {
@@ -1155,7 +1180,6 @@
       ctx.font = `bold ${19 * k}px sans-serif`;
       ctx.fillText(l, x0 + 34 * k, y, W - x0 * 2 - 34 * k);
     });
-    centerText(t(isTouch ? 'help.close.touch' : 'help.close.key'), H - 28 * k, 20 * k, '#cfd8dc');
   }
 
   function setHelp(on) {
@@ -1175,12 +1199,12 @@
   function drawOver() {
     ctx.fillStyle = 'rgba(8,14,20,0.7)';
     ctx.fillRect(0, 0, W, H);
-    // 下半分は HTML のシェア・もう一度ボタンなので上に詰める
+    // 下は HTML のシェア・もう一度ボタン、さらに下はバナー広告(アプリ)なので上に詰める
     const k = Math.min(U, 1.3);
-    centerText(t('over.title'), 62, 30 * k, '#ffffff', '900');
-    centerText(t('over.steals', { n: state.steals, m: TOTAL * 3 }), 62 + 52 * k, 44 * k, '#ffe14d', '900');
+    centerText(t('over.title'), 46, 28 * k, '#ffffff', '900');
+    centerText(t('over.steals', { n: state.steals, m: TOTAL * 3 }), 46 + 46 * k, 42 * k, '#ffe14d', '900');
     const [rank, col] = rankOf(state.steals);
-    centerText(t('over.rank', { r: rank }), 62 + 88 * k, 24 * k, col);
+    centerText(t('over.rank', { r: rank }), 46 + 80 * k, 23 * k, col);
     ctx.font = `${16 * k}px sans-serif`;
     ctx.fillStyle = '#eeeeee';
     ctx.textAlign = 'center';
@@ -1188,12 +1212,12 @@
     const rate = (ok, n) => (n ? `${ok}/${n} (${Math.round(ok / n * 100)}%)` : '-');
     ctx.font = `bold ${17 * k}px sans-serif`;
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(t('over.line1', { a: rate(state.s2, state.tries[2]), b: rate(state.s3, state.tries[3]), h: rate(state.home, state.tries[0]) }), W / 2, 62 + 116 * k, W - 40);
+    ctx.fillText(t('over.line1', { a: rate(state.s2, state.tries[2]), b: rate(state.s3, state.tries[3]), h: rate(state.home, state.tries[0]) }), W / 2, 46 + 104 * k, W - 40);
     ctx.font = `${16 * k}px sans-serif`;
     ctx.fillStyle = '#eeeeee';
-    ctx.fillText(t('over.line2', { k: state.bestStreak, p: state.pickOuts, c: state.csOuts }), W / 2, 62 + 138 * k);
-    if (state.newRecord) centerText(t('over.new'), 62 + 166 * k, 20 * k, '#ff8a65');
-    else if (state.best) centerText(t('over.best', { n: state.best.steals, h: state.best.home }), 62 + 166 * k, 17 * k, '#9fe8ff');
+    ctx.fillText(t('over.line2', { k: state.bestStreak, p: state.pickOuts, c: state.csOuts }) + redoLabel(), W / 2, 46 + 124 * k, W - 40);
+    if (state.newRecord) centerText(t('over.new'), 46 + 148 * k, 19 * k, '#ff8a65');
+    else if (state.best) centerText(t('over.best', { n: state.best.steals, h: state.best.home }), 46 + 148 * k, 17 * k, '#9fe8ff');
   }
 
   function drawMute() {
@@ -1255,6 +1279,7 @@
     if (state.phase === 'over') drawOver();
     updateShareVisibility();
     updateLegalVisibility();
+    updateBanner();
     updatePauseMenu();
     drawMute();
   }
@@ -1272,15 +1297,18 @@
     return n ? Math.round(ok / n * 100) + '%' : '-';
   }
 
+  // 広告を見てやり直した回数(結果画面・シェア文に出す)
+  const redoLabel = () => (state.redoUsed ? t(state.redoUsed === 1 ? 'redo.used1' : 'redo.used', { n: state.redoUsed }) : '');
+
   function shareText() {
     const [rank] = rankOf(state.steals);
-    return t('share.text', { n: state.steals, h: state.home, r: rank, k: state.bestStreak, t: TOTAL, a: pct(2), b: pct(3), c: pct(0) });
+    return t('share.text', { n: state.steals, h: state.home, r: rank, k: state.bestStreak, t: TOTAL, a: pct(2), b: pct(3), c: pct(0) }).replace('\n#', redoLabel() + '\n#');
   }
   function prepareShare() {
     const text = shareText(), url = shareUrl();
     $id('shareX').href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text) + (url ? '&url=' + encodeURIComponent(url) : '');
     $id('shareLine').href = 'https://line.me/R/share?text=' + encodeURIComponent(text + (url ? '\n' + url : ''));
-    $id('shareMsg').textContent = t(navigator.share ? 'share.msg.image' : 'share.msg.links');
+    $id('shareMsg').textContent = t(NATIVE ? 'share.msg.native' : navigator.share ? 'share.msg.image' : 'share.msg.links');
     $id('retryBtn').textContent = t('over.retryBtn') + (isTouch ? '' : ' (SPACE)');
   }
   function makeShareImage() {
@@ -1314,6 +1342,12 @@
   }
   async function shareResult() {
     const text = shareText(), url = shareUrl();
+    // アプリでは Android の共有メニューを出す
+    const nativeShare = plugin('Share');
+    if (nativeShare) {
+      try { await nativeShare.share({ title: t('share.title'), text, url, dialogTitle: t('share.dialog') }); } catch (e) { /* キャンセル */ }
+      return;
+    }
     if (navigator.share) {
       try {
         const blob = await makeShareImage();
@@ -1352,27 +1386,108 @@
       if (show) prepareShare();
     }
   }
-  $id('retryBtn').addEventListener('click', () => { audio(); if (state.phase === 'over') newGame(); });
+  // ---------- 全画面広告(アプリのみ) ----------
+  // プレイを始める・トップに戻る・ポーズから再開・もう一度、のたびに毎回出す
+  let adBusy = false;
+  async function withAd(fn) {
+    if (adBusy) return;
+    if (Ads.available) {
+      adBusy = true;
+      await Ads.showInterstitial(3000);
+      adBusy = false;
+    }
+    fn();
+  }
+  function startGame() { audio(); setHelp(false); newGame(); }
+  function resumeGame() { withAd(() => { if (state.paused) togglePause(); }); }
+  function closeHelp() { withAd(() => setHelp(false)); }
+
+  $id('retryBtn').addEventListener('click', () => { audio(); if (state.phase === 'over') withAd(startGame); });
   function goTitle() {
     timers = [];
-    Object.assign(state, { phase: 'title', paused: false, popups: [], runner: null });
+    closeRedo();
+    Object.assign(state, { phase: 'title', paused: false, popups: [], runner: null, help: false });
     setupFieldIdle();
   }
-  $id('titleBtn').addEventListener('click', () => { audio(); if (state.phase === 'over') goTitle(); });
+  $id('titleBtn').addEventListener('click', () => { audio(); if (state.phase === 'over') withAd(goTitle); });
 
   const pauseEl = $id('pauseMenu');
   for (const ev of ['pointerdown', 'pointerup']) pauseEl.addEventListener(ev, (e) => e.stopPropagation());
-  $id('pauseResume').addEventListener('click', () => { audio(); goLandscape(); if (state.paused) togglePause(); });
-  $id('pauseTitle').addEventListener('click', () => { audio(); if (state.paused) goTitle(); });
+  $id('pauseResume').addEventListener('click', () => { audio(); goLandscape(); if (state.paused) resumeGame(); });
+  $id('pauseTitle').addEventListener('click', () => { audio(); if (state.paused) withAd(goTitle); });
   function updatePauseMenu() {
-    const show = state.paused && !isPortrait() && state.phase !== 'title' && state.phase !== 'over';
+    const show = state.paused && !isPortrait() && !adBusy && state.phase !== 'title' && state.phase !== 'over';
     if (show === pauseEl.hidden) pauseEl.hidden = !show;
   }
+  // 別のアプリに切り替えたら一時停止して音を止める
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
       if (state.phase !== 'title' && state.phase !== 'over') state.paused = true;
       Sound.suspend();
-    } else Sound.resume();
+    } else if (!Ads.showing) Sound.resume();
+  });
+  // Android の戻るボタン: プレイ中は一時停止(一時停止中は再開)、遊び方はトップへ、トップ・結果画面ではアプリを終了
+  if (plugin('App')) {
+    plugin('App').addListener('backButton', () => {
+      if (adBusy) return;
+      if (state.phase === 'title') { if (state.help) closeHelp(); else plugin('App').exitApp(); }
+      else if (state.phase === 'over') plugin('App').exitApp();
+      else if (state.paused) resumeGame();
+      else togglePause();
+    });
+  }
+
+  // ---------- リワード広告で失敗した盗塁をやり直す(アプリのみ・1 ゲーム 5 回まで) ----------
+  // アウトになったら「広告を見てこの盗塁をやり直す」を出す。最後まで見ると、その挑戦の成績を取り消して
+  // 同じ塁・同じスタミナ・同じ投手の動き(同じ乱数)でもう一度
+  const REDO_WAIT = 6;
+  const REDO_MAX = 5;
+  const redo = { active: false, busy: false, t: 0 };
+  const redoEl = $id('redo');
+  for (const ev of ['pointerdown', 'pointerup']) redoEl.addEventListener(ev, (e) => e.stopPropagation());
+  function offerRedo() {
+    if (!Ads.rewardAvailable || state.redoUsed >= REDO_MAX) return;
+    Object.assign(redo, { active: true, busy: false, t: REDO_WAIT });
+    $id('redoWatch').disabled = false;
+    $id('redoWatch').textContent = t('redo.watch');
+    $id('redoNote').textContent = t('redo.note', { n: REDO_MAX - state.redoUsed });
+    $id('redoNext').textContent = t('redo.next', { s: REDO_WAIT });
+    redoEl.hidden = false;
+  }
+  function closeRedo() {
+    redo.active = false;
+    redoEl.hidden = true;
+  }
+  function updateRedo(dt) {
+    if (!redo.active || redo.busy) return;
+    redo.t -= dt;
+    $id('redoNext').textContent = t('redo.next', { s: Math.max(0, Math.ceil(redo.t)) });
+    if (redo.t <= 0) closeRedo();
+  }
+  $id('redoNext').addEventListener('click', closeRedo);
+  $id('redoWatch').addEventListener('click', async () => {
+    if (!redo.active || redo.busy) return;
+    redo.busy = true;
+    $id('redoWatch').disabled = true;
+    $id('redoWatch').textContent = t('redo.loading');
+    const result = await Ads.showRewarded();
+    if (!redo.active) return;
+    if (result === 'unavailable') {
+      $id('redoNote').textContent = t('redo.fail');
+      setTimeout(closeRedo, 2000);
+      return;
+    }
+    closeRedo();
+    if (result !== 'rewarded' || state.phase !== 'result') return;
+    // この挑戦の失敗を取り消して、同じ状態からもう一度
+    const res = state.result;
+    state.tries[state.to]--;
+    if (res.kind === 'pick') state.pickOuts--; else state.csOuts--;
+    state.streak = state.snap.streak;
+    state.redoUsed++;
+    state.popups = [];
+    state.runner = newRunner(state.snap.stamina);
+    startAttempt();
   });
 
   const langEl = $id('langSel');
@@ -1380,13 +1495,25 @@
   for (const ev of ['pointerdown', 'pointerup']) langEl.addEventListener(ev, (e) => e.stopPropagation());
   I18N.onChange(() => { if (!shareEl.hidden) prepareShare(); });
   I18N.apply();
-  const helpEl = $id('helpBtn');
-  helpEl.addEventListener('click', () => { audio(); setHelp(true); });
-  for (const ev of ['pointerdown', 'pointerup']) helpEl.addEventListener(ev, (e) => e.stopPropagation());
+  $id('helpBtn').addEventListener('click', () => { audio(); setHelp(true); });
+  const titleBtnsEl = $id('titleBtns'), helpBtnsEl = $id('helpBtns'), legalEl = $id('legal');
+  $id('playBtn').addEventListener('click', () => { if (state.phase === 'title') withAd(startGame); });
+  $id('helpPlay').addEventListener('click', () => { if (state.phase === 'title') withAd(startGame); });
+  $id('helpBack').addEventListener('click', () => { audio(); if (state.phase === 'title') closeHelp(); });
+  for (const el of [titleBtnsEl, helpBtnsEl, legalEl]) for (const ev of ['pointerdown', 'pointerup']) el.addEventListener(ev, (e) => e.stopPropagation());
+  // タイトル画面の下に、バージョン(アプリ版)・プライバシーポリシー・広告の設定(EU など)を出す
+  if (window.APP_VERSION && window.APP_VERSION !== 'dev') $id('buildInfo').textContent = window.APP_VERSION;
+  Ads.initDone.then(() => { if (Ads.privacyOptionsRequired) $id('adPrivacy').hidden = false; });
+  $id('adPrivacyLink').addEventListener('click', (e) => { e.preventDefault(); Ads.showPrivacyOptions(); });
   function updateLegalVisibility() {
-    const show = state.phase === 'title' && !state.help;
-    if (show === langEl.hidden) langEl.hidden = !show;
-    if (show === helpEl.hidden) helpEl.hidden = !show;
+    const top = state.phase === 'title' && !state.help, help = state.phase === 'title' && !!state.help;
+    if (top === langEl.hidden) { langEl.hidden = !top; titleBtnsEl.hidden = !top; legalEl.hidden = !top; }
+    if (help === helpBtnsEl.hidden) helpBtnsEl.hidden = !help;
+  }
+  // バナー広告はトップ・遊び方・ポーズ・結果画面だけ(プレイ中は操作ボタンと重なるので出さない)
+  function updateBanner() {
+    const paused = state.paused && state.phase !== 'title' && state.phase !== 'over';
+    Ads.setBanner((state.phase === 'title' || state.phase === 'over' || paused) && !isPortrait());
   }
 
   // タイトル画面用に守備陣だけ並べておく

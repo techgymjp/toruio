@@ -6,8 +6,9 @@
 画面は **ランナーの背中越しに次の塁を見る3D視点**。ナイター照明のスタジアム・満員のスタンド・花火・応援などの
 質感と演出は、センターフライ(techgymjp/center-fly)・ホームラン競走(techgymjp/homerun)と揃えています。
 
-`index.html` をブラウザで開くだけで遊べます(ビルド不要)。3D描画に同梱の three.js(`vendor/three.min.js`, MIT License)を使っています。
-GitHub Pages などの静的ホスティングにそのまま置けます。
+`index.html` をブラウザで開くだけで遊べます(Web 版はビルド不要)。Android アプリ版もあります(下記)。
+3D描画に同梱の three.js(`vendor/three.min.js`, MIT License)を使っています。
+Vercel では `vercel.json` の指定で `npm run build` が `www/` を作り、それを公開します。
 
 ## 操作
 
@@ -97,10 +98,46 @@ GitHub Pages などの静的ホスティングにそのまま置けます。
 - `scene3d.js` — 3D 描画(球場・観客席・照明・花火はセンターフライと同じ作り)
 - `sound.js` — 効果音と応援(Web Audio API)
 - `i18n.js` — 日本語・英語の文言
+- `ads.js` — Google AdMob 広告(Android アプリのときだけ動く)。`ads-config.js` / `build-info.js` は Web 版用の既定値で、アプリのビルド時に生成し直す
+- `scripts/build-web.js` — アプリに同梱するファイルを `www/` にコピーする
+- `android/` — Android アプリ(Capacitor)。`assets/` はアイコンと起動画面の元画像
 
 テスト用に `window.Toruio` からゲームの状態や自動操作(`setBot`)を使えます。
 
+## Android アプリ
+
+[Capacitor](https://capacitorjs.com/) でゲームのファイルをアプリに同梱し、Android アプリにしています(オフラインで遊べます)。
+構成は techgymjp/jet-fighter の `docs/ANDROID_PORTING.md`(techgymjp/center-fly と同じ)です。
+
+- パッケージ名: `jp.techgym.toruio`
+- アプリ名: 端末の言語が日本語なら「盗塁王」、それ以外は「Steal King」
+- 横画面固定・全画面・プレイ中は画面を消さない
+- 戻るボタン: プレイ中は一時停止(一時停止中は再開)、遊び方の画面ではトップへ、トップ・結果画面ではアプリを終了
+- 別アプリに切り替えると自動で一時停止して音を止める
+- シェアは Android の共有メニュー
+- 広告(AdMob)
+  - バナー: トップ・遊び方・一時停止・結果画面の下中央だけ(プレイ中は操作ボタンと重なるので出さない)
+  - インタースティシャル: 「プレイボール」(トップ・遊び方から)、トップに戻る(遊び方・一時停止・結果画面から)、一時停止からの再開、結果画面の「もう一度」のたびに毎回
+  - リワード: 盗塁でアウトになったときに「広告を見てこの盗塁をやり直す」(1 ゲーム 5 回まで。6 秒で自動的に次へ)。
+    見終わると、その挑戦の成績を取り消し、同じ塁・同じスタミナ・同じ投手の動き(同じ乱数)でもう一度。使った回数は結果画面とシェア文に「やり直し N 回」と出る
+  - 本番の広告ユニット ID は `ads.js` の `UNITS.production`、アプリ ID は `android/app/src/main/res/values/strings.xml` の `admob_app_id`。
+    ID が空の広告の種類は本番ビルドでは出さない(アプリ ID は届くまで Google 公式のテスト用 ID)
+  - EU など同意が必要な地域ではトップ画面に「広告の設定」
+- トップ画面にバージョン(ビルド番号)とプライバシーポリシーへのリンク
+
+ビルドは GitHub Actions(`.github/workflows/android.yml`)で行います。
+
+1. `npm ci` → `npm run build`(`www/` に Web ファイルをコピーし、`ads-config.js` と `build-info.js` を生成)→ `npx cap sync android` → `./gradlew assembleDebug`
+2. 既定ブランチなら、Release `android-latest` の `toruio.apk` を差し替え(動作確認用・テスト広告)
+   - リリース画面: `https://github.com/techgymjp/toruio/releases/tag/android-latest`(QR コード: `docs/apk-qr.png`)
+   - APK 直接: `https://github.com/techgymjp/toruio/releases/latest/download/toruio.apk`
+3. GitHub Secrets に署名鍵(`ANDROID_KEYSTORE_BASE64` / `ANDROID_KEYSTORE_PASSWORD` / `ANDROID_KEY_ALIAS` / `ANDROID_KEY_PASSWORD`)があれば、本番広告で署名付き AAB を作り Artifact(`toruio-release-aab`)に上げる
+
+手元で試すとき: `npm install` → `npm run android:sync` → `npm run android:open`(Android Studio が必要)。
+アイコンと起動画面は `assets/` の元画像から `npx @capacitor/assets generate --android` で生成しています。
+
 ## ライセンス
 
-著作権はテックジム株式会社に帰属します(All rights reserved)。詳しくは [LICENSE](LICENSE) を見てください。
-同梱の three.js は MIT License です。
+著作権はテックジム株式会社に帰属します(All rights reserved)。許可なく複製・改変・再配布すること、Web サイトやアプリ(Google Play、App Store など)として公開・販売すること、名前・ロゴ・アイコン・画像を使うことを禁止します。
+テックジムの受講生が学習目的で複製・改変することは許可しますが、アプリストアでの公開・広告の掲載・販売などの商用利用は禁止し、著作権表示を残してください。
+同梱の three.js は MIT License です。詳しくは [LICENSE](LICENSE) を見てください。

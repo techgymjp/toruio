@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <!-- 英語の端末ではアプリ名を英語で表示する -->
+    <string name="app_name">Steal King</string>
+    <string name="title_activity_main">Steal King</string>
+</resources>

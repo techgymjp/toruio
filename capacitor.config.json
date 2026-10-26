@@ -1,0 +1,8 @@
+{
+  "appId": "jp.techgym.toruio",
+  "appName": "盗塁王",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#0a0d1c"
+  }
+}

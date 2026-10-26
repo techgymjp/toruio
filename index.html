@@ -21,7 +21,19 @@
   <div id="stage">
     <canvas id="view"></canvas>
     <canvas id="game" width="960" height="640"></canvas>
-    <button id="helpBtn" type="button" data-i18n="help.btn" hidden>遊び方</button>
+    <div id="titleBtns" hidden>
+      <button id="playBtn" class="tbtn play" type="button" data-i18n="title.play">▶ プレイボール</button>
+      <button id="helpBtn" class="tbtn" type="button" data-i18n="help.btn">📖 遊び方</button>
+    </div>
+    <div id="helpBtns" hidden>
+      <button id="helpPlay" class="tbtn play" type="button" data-i18n="title.play">▶ プレイボール</button>
+      <button id="helpBack" class="tbtn" type="button" data-i18n="help.back">もどる</button>
+    </div>
+    <div id="legal" hidden>
+      <span id="buildInfo"></span>
+      <a href="https://techgym.jp/privacy-policy/" data-i18n-href="url.privacy" data-i18n="legal.privacy" target="_blank" rel="noopener">プライバシーポリシー</a>
+      <span id="adPrivacy" hidden>|<a href="#" id="adPrivacyLink" data-i18n="legal.adSettings">広告の設定</a></span>
+    </div>
     <div id="langSel" hidden>
       <button class="langBtn" type="button" data-lang="ja">日本語</button>
       <button class="langBtn" type="button" data-lang="en">English</button>
@@ -38,6 +50,13 @@
         <button id="titleBtn" class="sbtn" type="button" data-i18n="menu.title">タイトルへ</button>
       </div>
     </div>
+    <div id="redo" hidden>
+      <p id="redoNote"></p>
+      <div class="row">
+        <button id="redoWatch" class="sbtn main" type="button">▶ 広告を見てこの盗塁をやり直す</button>
+        <button id="redoNext" class="sbtn" type="button">つぎへ</button>
+      </div>
+    </div>
     <div id="pauseMenu" hidden>
       <button id="pauseResume" class="sbtn retry" type="button" data-i18n="menu.resume">再開</button>
       <button id="pauseTitle" class="sbtn" type="button" data-i18n="menu.title">タイトルへ</button>
@@ -47,6 +66,9 @@
 <script src="vendor/three.min.js"></script>
 <script src="i18n.js"></script>
 <script src="sound.js"></script>
+<script src="build-info.js"></script>
+<script src="ads-config.js"></script>
+<script src="ads.js"></script>
 <script src="scene3d.js"></script>
 <script src="game.js"></script>
 </body>
