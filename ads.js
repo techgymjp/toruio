@@ -10,7 +10,7 @@ window.Ads = (() => {
     },
     // 本番の広告ユニット(AdMob の「目指せ盗塁王」)。届いたものから入れる。空の種類は本番ビルドでは出さない
     production: {
-      interstitial: '',
+      interstitial: 'ca-app-pub-6411535997477460/7903124794',
       rewarded: '',
       banner: 'ca-app-pub-6411535997477460/5468533141',
     },
