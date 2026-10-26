@@ -136,6 +136,8 @@ Vercel では `vercel.json` の指定で `npm run build` が `www/` を作り、
 手元で試すとき: `npm install` → `npm run android:sync` → `npm run android:open`(Android Studio が必要)。
 アイコンと起動画面は `assets/` の元画像から `npx @capacitor/assets generate --android` で生成しています。
 
+Google Play の掲載情報(日本語・英語の紹介文、アイコン、フィーチャーグラフィック、スクリーンショット)の下書きは `docs/store/` にあります(`docs/store/listing.md`)。
+
 ## ライセンス
 
 著作権はテックジム株式会社に帰属します(All rights reserved)。許可なく複製・改変・再配布すること、Web サイトやアプリ(Google Play、App Store など)として公開・販売すること、名前・ロゴ・アイコン・画像を使うことを禁止します。

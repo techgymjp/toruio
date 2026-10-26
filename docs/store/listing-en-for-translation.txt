@@ -1,0 +1,48 @@
+Steal King - English source text for machine translation (Google Play store listing)
+
+This version uses short, plain sentences without idioms or slang, so that automatic translation
+into other languages stays accurate. Keep the game name "Steal King" untranslated.
+
+[App name] (max 30 characters)
+Steal King: Base Stealing Game
+
+[Short description] (max 80 characters)
+You are a runner on first base. Steal second base, third base and home plate!
+
+[Full description] (max 4000 characters)
+You are a runner on first base in a baseball game at night. Your job is to steal bases. Steal second base, then third base, then home plate. You have 100 tries. How many bases can you steal?
+
+■ HOW TO PLAY
+• Hold the LEAD button to move away from the base. Release the button to go back to the base.
+• A big lead helps you run faster to the next base. But the pitcher throws to the base more often.
+• When the pitcher throws to your base, go back quickly. You can dive back to the base.
+• Sometimes the pitcher only pretends to throw. Then he pitches quickly.
+• When the pitcher pitches, you start running automatically. Hold the DASH button to run fast.
+• Slide into the base. The slide button flashes when it is the right time to press it.
+• A head-first slide is the fastest. If you slide too early, you stop before the base. If you slide too late, you slide past the base and you are out.
+• A feet-first slide is slower, but you do not slide past the base.
+
+■ STAMINA
+• Each lead and each slide uses stamina. With less stamina, you run more slowly.
+• Your stamina comes back when you start a new try.
+• Save your stamina for the steal of home plate.
+
+■ PITCHERS AND CATCHERS
+• You see a new pitcher and a new catcher on each try.
+• Some pitchers are quick. Some pitchers throw to the base often.
+• Some catchers have a strong arm.
+
+■ 3D STADIUM AT NIGHT
+• You see the field from behind the runner.
+• The crowd plays trumpets and drums.
+• Fireworks go up every time you steal a base.
+• You see a big fireworks show when you steal home plate.
+
+■ FEATURES
+• Get a rank based on how many bases you steal.
+• See your success rate for second base, third base and home plate.
+• Share your results with your friends.
+• Play without an internet connection. Ads and sharing need a connection.
+• English and Japanese are available in the game.
+
+Play ball! Can you become the Steal King?
