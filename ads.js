@@ -12,7 +12,7 @@ window.Ads = (() => {
     production: {
       interstitial: '',
       rewarded: '',
-      banner: '',
+      banner: 'ca-app-pub-6411535997477460/5468533141',
     },
   };
   const RETRY_MS = 20000;      // 読み込みに失敗したら少し待って再挑戦する

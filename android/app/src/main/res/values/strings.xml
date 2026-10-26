@@ -4,6 +4,6 @@
     <string name="title_activity_main">盗塁王</string>
     <string name="package_name">jp.techgym.toruio</string>
     <string name="custom_url_scheme">jp.techgym.toruio</string>
-    <!-- AdMob のアプリ ID。届くまでは Google 公式のテスト用アプリ ID -->
-    <string name="admob_app_id">ca-app-pub-3940256099942544~3347511713</string>
+    <!-- AdMob のアプリ ID(AdMob の「目指せ盗塁王」) -->
+    <string name="admob_app_id">ca-app-pub-6411535997477460~7930210809</string>
 </resources>
