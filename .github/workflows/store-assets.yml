@@ -28,7 +28,7 @@ jobs:
       - name: Make zip files
         run: |
           cd docs/store
-          zip -qr "$GITHUB_WORKSPACE/toruio-appstore.zip" listing.md listing-en.txt ios
+          zip -qr "$GITHUB_WORKSPACE/toruio-appstore.zip" ios
           zip -q "$GITHUB_WORKSPACE/toruio-googleplay.zip" listing.md listing-en.txt listing-en-for-translation.txt \
             icon-512.png feature-graphic.png feature-graphic-en.png ja-*.png en-*.png
 
@@ -40,7 +40,7 @@ jobs:
           cat > notes.md <<NOTES
           ストアに登録する紹介文と画像をまとめた zip です（docs/store/ から自動で作成）。
 
-          - toruio-appstore.zip … App Store 用（紹介文 listing.md・listing-en.txt、スクリーンショット 2622×1206 日英各 4 枚、ヘッダ 3840×1646、検索結果 3840×2560）
+          - toruio-appstore.zip … App Store 用（ios/listing.md に日英の名前・サブタイトル・プロモーション用テキスト・概要・キーワード、スクリーンショット 2622×1206 日英各 4 枚、ヘッダ 3840×1646、検索結果 3840×2560）
           - toruio-googleplay.zip … Google Play 用（紹介文 listing.md・listing-en.txt・機械翻訳用の英語、アイコン 512×512、フィーチャーグラフィック 1024×500 日英、スクリーンショット 1920×1080 日英各 6 枚）
 
           コミット ${GITHUB_SHA}

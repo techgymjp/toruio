@@ -133,8 +133,7 @@ npm run ios:open
 | バージョン | **1.0.0**（「1.0」のままだとアップロードしたビルドが選べない） |
 | スクリーンショット | 「Dynamic Island 搭載 iPhone（中型ディスプレイ）」の欄に、`docs/store/ios/6.3inch/` の 2622 × 1206（横向き）を入れる。日本語版（ja-）と英語版（en-）各 4 枚。6.9 インチ（2868 × 1320）は受け付けられない |
 | ヘッダ・検索結果 | 「ヘッダと検索結果」タブに `docs/store/ios/appstore-header-3840x1646.png` と `appstore-search-3840x2560.png`（ヘッダを入れたら検索結果も入れる） |
-| プロモーション用テキスト・概要 | Google Play 用の文章（`docs/store/listing.md`、英語は `docs/store/listing-en.txt`）を流用 |
-| キーワード | 日本語：`野球,盗塁,ベースボール,スライディング,ランナー,3D,スポーツ` ／ 英語：`baseball,steal,base,runner,slide,sports,3D` |
+| 名前・サブタイトル・プロモーション用テキスト・概要・キーワード | `docs/store/ios/listing.md`（日本語と英語） |
 | サポート URL | https://techgym.jp/ |
 | プライバシーポリシー URL（App 情報） | https://techgym.jp/privacy-policy/ |
 | カテゴリ（App 情報） | ゲーム（サブカテゴリ：スポーツ） |

@@ -102,6 +102,8 @@ Pinch run from first and steal second, third — and home! A 3D base stealing ga
 
 ## App Store(iOS)用の画像(`ios/`)
 
+App Store の紹介文(名前・サブタイトル・プロモーション用テキスト・概要・キーワード)は `ios/listing.md` にあります。
+
 | 用途 | ファイル | サイズ |
 | --- | --- | --- |
 | スクリーンショット(Dynamic Island 搭載 iPhone・中型ディスプレイ) | `ios/6.3inch/ja-1-title.png` 〜 `ja-4-homesteal.png`、`en-…` | 2622 × 1206 |
