@@ -97,3 +97,15 @@ Pinch run from first and steal second, third — and home! A 3D base stealing ga
 スクリーンショットの内容: 1 タイトル / 2 リードを取って投手をうかがう / 3 牽制球に頭から帰塁 / 4 二塁へヘッドスライディング / 5 ホームスチール成功 / 6 結果画面
 
 ゲームを自動操作して撮影しています。機械翻訳で追加した他の言語には、英語の画像を使ってください。
+
+---
+
+## App Store(iOS)用の画像(`ios/`)
+
+| 用途 | ファイル | サイズ |
+| --- | --- | --- |
+| スクリーンショット(Dynamic Island 搭載 iPhone・中型ディスプレイ) | `ios/6.3inch/ja-1-title.png` 〜 `ja-4-homesteal.png`、`en-…` | 2622 × 1206 |
+| ヘッダ(文字なし。App Store がアプリ名を重ねる) | `ios/appstore-header-3840x1646.png` | 3840 × 1646 |
+| 検索結果 | `ios/appstore-search-3840x2560.png` | 3840 × 2560 |
+
+スクリーンショットの内容: 1 タイトル / 2 牽制球に頭から帰塁 / 3 二塁へヘッドスライディング / 4 ホームスチール成功

@@ -6,7 +6,7 @@
 画面は **ランナーの背中越しに次の塁を見る3D視点**。ナイター照明のスタジアム・満員のスタンド・花火・応援などの
 質感と演出は、センターフライ(techgymjp/center-fly)・ホームラン競走(techgymjp/homerun)と揃えています。
 
-`index.html` をブラウザで開くだけで遊べます(Web 版はビルド不要)。Android アプリ版もあります(下記)。
+`index.html` をブラウザで開くだけで遊べます(Web 版はビルド不要)。Android・iOS アプリ版もあります(下記)。
 3D描画に同梱の three.js(`vendor/three.min.js`, MIT License)を使っています。
 Vercel では `vercel.json` の指定で `npm run build` が `www/` を作り、それを公開します。
 
@@ -101,6 +101,7 @@ Vercel では `vercel.json` の指定で `npm run build` が `www/` を作り、
 - `ads.js` — Google AdMob 広告(Android アプリのときだけ動く)。`ads-config.js` / `build-info.js` は Web 版用の既定値で、アプリのビルド時に生成し直す
 - `scripts/build-web.js` — アプリに同梱するファイルを `www/` にコピーする
 - `android/` — Android アプリ(Capacitor)。`assets/` はアイコンと起動画面の元画像
+- `ios/` — iOS アプリ(Capacitor)
 
 テスト用に `window.Toruio` からゲームの状態や自動操作(`setBot`)を使えます。
 
@@ -137,6 +138,19 @@ Vercel では `vercel.json` の指定で `npm run build` が `www/` を作り、
 アイコンと起動画面は `assets/` の元画像から `npx @capacitor/assets generate --android` で生成しています。
 
 Google Play の掲載情報(日本語・英語の紹介文、アイコン、フィーチャーグラフィック、スクリーンショット)の下書きは `docs/store/` にあります(`docs/store/listing.md`)。
+
+## iOS アプリ
+
+Android 版と同じ Capacitor のプロジェクトに `ios/` を足して作っています(構成は techgymjp/jet-fighter の JET STRIKE と同じ)。
+Mac での作業手順(ビルド・TestFlight・審査用の画面録画・App Store Connect の入力)は [docs/IOS_BUILD.md](docs/IOS_BUILD.md) にあります。
+
+- Bundle ID: `jp.techgym.toruio`(Team ID `GNM3VTX9YG`)。iPhone 専用・横画面固定
+- ホーム画面の名前: 日本語の端末では「盗塁王」、それ以外は「Steal King」
+- 広告は Android 版と同じ場面に出す(iOS 用の広告ユニットは `ads.js` の `UNITS.ios`、アプリ ID は `ios/App/App/Info.plist` の `GADApplicationIdentifier`)。
+  同意確認のあとに App Tracking Transparency の確認を出す
+- `npm run ios:sync`(テスト広告)/ `npm run ios:release`(本番広告。App Store 用)/ `npm run ios:open`
+- GitHub Actions(`.github/workflows/ios.yml`)で、push のたびにシミュレーター向けに署名なしでビルドできるかを確認する
+- App Store 用の画像は `docs/store/ios/`(スクリーンショット 2622×1206 日英 各 4 枚、ヘッダ 3840×1646、検索結果 3840×2560)
 
 ## ライセンス
 
