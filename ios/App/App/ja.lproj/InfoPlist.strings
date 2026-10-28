@@ -1,0 +1,4 @@
+/* ホーム画面に出るアプリ名(日本語の端末) */
+"CFBundleDisplayName" = "盗塁王";
+/* App Tracking Transparency の確認画面に表示する説明 */
+"NSUserTrackingUsageDescription" = "あなたに合った広告を表示するために使います。このゲームは広告収入により無料で遊べます。";

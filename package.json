@@ -2,17 +2,21 @@
   "name": "toruio",
   "version": "1.0.0",
   "private": true,
-  "description": "目指せ盗塁王 代走で二盗・三盗・ホームスチールを狙う3D盗塁ゲーム（Web / Android）",
+  "description": "目指せ盗塁王 代走で二盗・三盗・ホームスチールを狙う3D盗塁ゲーム（Web / Android / iOS）",
   "scripts": {
     "build": "node scripts/build-web.js",
     "android:sync": "npm run build && npx cap sync android",
-    "android:open": "npx cap open android"
+    "android:open": "npx cap open android",
+    "ios:sync": "npm run build && npx cap sync ios",
+    "ios:release": "ADMOB_MODE=production npm run build && npx cap sync ios",
+    "ios:open": "npx cap open ios"
   },
   "dependencies": {
     "@capacitor-community/admob": "^8.2.1",
     "@capacitor/android": "8.5.2",
     "@capacitor/app": "8.1.2",
     "@capacitor/core": "8.5.2",
+    "@capacitor/ios": "^8.5.2",
     "@capacitor/share": "8.0.3"
   },
   "devDependencies": {
