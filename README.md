@@ -138,6 +138,9 @@ Vercel では `vercel.json` の指定で `npm run build` が `www/` を作り、
 アイコンと起動画面は `assets/` の元画像から `npx @capacitor/assets generate --android` で生成しています。
 
 Google Play の掲載情報(日本語・英語の紹介文、アイコン、フィーチャーグラフィック、スクリーンショット)の下書きは `docs/store/` にあります(`docs/store/listing.md`)。
+まとめてダウンロードするときは、Release「store-assets」の zip を使います(`docs/store/` を変えると自動で作り直す)。
+- App Store 用: https://github.com/techgymjp/toruio/releases/download/store-assets/toruio-appstore.zip
+- Google Play 用: https://github.com/techgymjp/toruio/releases/download/store-assets/toruio-googleplay.zip
 
 ## iOS アプリ
 

@@ -1,0 +1,53 @@
+name: Store assets
+
+# ストア用の紹介文と画像を zip にして、Release「store-assets」に載せる (まとめてダウンロードできるように)
+#   App Store 用:   https://github.com/techgymjp/toruio/releases/download/store-assets/toruio-appstore.zip
+#   Google Play 用: https://github.com/techgymjp/toruio/releases/download/store-assets/toruio-googleplay.zip
+# 構成は techgymjp/shutoko の store-assets.yml と同じ
+on:
+  push:
+    paths:
+      - 'docs/store/**'
+      - '.github/workflows/store-assets.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: store-assets-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Make zip files
+        run: |
+          cd docs/store
+          zip -qr "$GITHUB_WORKSPACE/toruio-appstore.zip" listing.md listing-en.txt ios
+          zip -q "$GITHUB_WORKSPACE/toruio-googleplay.zip" listing.md listing-en.txt listing-en-for-translation.txt \
+            icon-512.png feature-graphic.png feature-graphic-en.png ja-*.png en-*.png
+
+      # Release は消さずに zip だけ差し替える (ダウンロードできない時間を作らないため)
+      - name: Publish to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > notes.md <<NOTES
+          ストアに登録する紹介文と画像をまとめた zip です（docs/store/ から自動で作成）。
+
+          - toruio-appstore.zip … App Store 用（紹介文 listing.md・listing-en.txt、スクリーンショット 2622×1206 日英各 4 枚、ヘッダ 3840×1646、検索結果 3840×2560）
+          - toruio-googleplay.zip … Google Play 用（紹介文 listing.md・listing-en.txt・機械翻訳用の英語、アイコン 512×512、フィーチャーグラフィック 1024×500 日英、スクリーンショット 1920×1080 日英各 6 枚）
+
+          コミット ${GITHUB_SHA}
+          NOTES
+          if gh release view store-assets > /dev/null 2>&1; then
+            gh release upload store-assets toruio-appstore.zip toruio-googleplay.zip --clobber
+            gh release edit store-assets --notes-file notes.md
+          else
+            gh release create store-assets toruio-appstore.zip toruio-googleplay.zip --target "$GITHUB_SHA" --title "ストア用の紹介文と画像" --notes-file notes.md --latest=false
+          fi
