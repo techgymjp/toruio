@@ -150,6 +150,7 @@ Mac での作業手順(ビルド・TestFlight・審査用の画面録画・App S
   同意確認のあとに App Tracking Transparency の確認を出す
 - `npm run ios:sync`(テスト広告)/ `npm run ios:release`(本番広告。App Store 用)/ `npm run ios:open`
 - GitHub Actions(`.github/workflows/ios.yml`)で、push のたびにシミュレーター向けに署名なしでビルドできるかを確認する
+- `.github/workflows/ios-release.yml` と `scripts/ios_profile.py`: iOS の Secrets を登録すると、push のたびに本番広告でビルドして TestFlight にアップロードする(techgymjp/shutoko と同じ。`docs/IOS_BUILD.md` の 8 章)
 - App Store 用の画像は `docs/store/ios/`(スクリーンショット 2622×1206 日英 各 4 枚、ヘッダ 3840×1646、検索結果 3840×2560)
 
 ## ライセンス

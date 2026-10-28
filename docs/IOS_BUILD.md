@@ -100,10 +100,10 @@ npm run ios:open
 
 ---
 
-## 5. 審査用の画面録画を用意する（提出の前に）
+## 5. 審査用の画面録画を撮っておく（提出の前に）
 
 審査の実績が少ないアカウントでは、初回の審査で「Guideline 2.1 - Information Needed」として**実機での操作の画面録画**を求められます（JET STRIKE で実際に求められた）。
-先に用意して、最初から「App Review に関する情報」のメモに書いておくと、審査が早く進みます。
+提出の前に撮っておき、2.1 が来たら、6 章の「審査へのメモ」と同じ文の返信にこの録画を添付します（録画はメモの文には入れない）。
 
 **録画のしかた**（TestFlight で入れた最新のビルドで、最新の iOS の iPhone で行う）
 
@@ -111,26 +111,15 @@ npm run ios:open
 2. アプリを一度削除してから TestFlight で入れ直す（最初の起動から録るため）
 3. コントロールセンターの「画面収録」を押して録画を始め、次の順に操作する（2〜3 分）
    1. ホーム画面からアプリを起動（起動画面 → トラッキングの確認画面 →「許可しない」でも「許可」でもよい）
-   2. トップ画面 →「遊び方」を開いて閉じる
+   2. トップ画面 →「遊び方」を開いて「もどる」
    3. 「プレイボール」（全画面広告 → 閉じる）
    4. 一塁でリードを取り、投球でスタート、ダッシュ、ヘッドスライディングで二盗
    5. 牽制球に戻る場面（来なければ省略してよい）
    6. アウトになったら「広告を見てこの盗塁をやり直す」（リワード広告を最後まで見る）
    7. ホームボタンで離れて戻り、一時停止の画面 →「タイトルへ」
-4. 録画は「写真」に保存される。大きすぎると返信に添付できない（400MB でも失敗した）ので、Mac に送って Finder で右クリック →「選択したビデオファイルをエンコード」→ 720p で小さくするか、Google ドライブの共有リンクにする
+4. 録画は「写真」に保存される。大きすぎると返信に添付できない（400MB でも失敗した）ので、Mac に送って Finder で右クリック →「選択したビデオファイルをエンコード」→ 720p で小さくするか、Google ドライブの共有リンクを返信文に貼る
 
 **本番の広告はタップしないこと**（録画中も、広告の閉じるボタンだけを押す）。
-
-**App Review に関する情報のメモ（日本語で書いてもよいが、英語が無難）**
-
-```
-1. Screen recording on a physical iPhone (latest iOS), from app launch: <Google ドライブの共有リンク>
-2. Purpose and audience: A casual 3D baseball game for players of all ages. You play a pinch runner and try to steal second base, third base and home plate in 100 tries.
-3. How to use: No login or account is needed. Tap "Play ball". Hold LEAD to take a lead and release to go back. You start running automatically on the pitch. Hold DASH to run fast, and tap SLIDE or HEAD-FIRST before the base.
-4. External services: Google AdMob (banner, interstitial and rewarded ads). The app shows the App Tracking Transparency prompt after the ad consent check. Ads can be shown even if tracking is not allowed.
-5. Regional differences: None, except that users in the EEA/UK see Google's ad consent form, and an "Ad settings" link on the title screen.
-6. Regulated content / third-party content: None. All graphics and sounds are created by us in code (three.js is used for 3D rendering under the MIT License).
-```
 
 ---
 
@@ -153,7 +142,7 @@ npm run ios:open
 | ビルド | TestFlight で確認したビルドを選ぶ |
 | 年齢制限 | 質問に答える（暴力・流血などの表現なし） |
 | App のプライバシー | AdMob が収集するデータを申告する（下記）。プライバシーポリシーの URL もここで入れる |
-| App Review に関する情報 | ログイン不要。連絡先を入力。メモに 5 章の文を入れる |
+| App Review に関する情報 | ログイン不要。連絡先を入力。メモに下の「審査へのメモ」を貼る |
 
 **App のプライバシー（AdMob を使うアプリの目安）**
 Google の「Apple の App Store のデータ開示要件への準備」（AdMob のヘルプ）に、AdMob が収集するデータの一覧があります。必ずそちらを見て最終確認してください。目安は次のとおりです。
@@ -162,6 +151,20 @@ Google の「Apple の App Store のデータ開示要件への準備」（AdMob
 - 目的：サードパーティ広告、アナリティクス
 - ユーザーに関連付け：しない
 - トラッキングに使用：デバイス ID と広告データは「する」
+
+**審査へのメモ（App Review に関する情報の「メモ」に貼る。初回に「Guideline 2.1 - Information Needed」が来たら、同じ文を返信し、5 章で撮った録画を添付する）**
+
+```
+1. Purpose and audience: Steal King is a free 3D baseball game for ages 13+. The player is a pinch runner and tries to steal second base, third base and home plate in 100 tries.
+
+2. How to use: No login or account is needed. Tap "Play ball". Hold LEAD to take a lead and release it to go back to the base. The runner starts automatically on the pitch. Hold DASH to sprint, and tap SLIDE or HEAD-FIRST before the base. The game is available in English and Japanese (chosen by the device language, and switchable on the title screen).
+
+3. External services: Google AdMob (banner, interstitial and rewarded ads) with Google's consent form (UMP) and App Tracking Transparency. Rewarded ads are optional: watching one lets the player retry a failed steal (up to 5 times per game). No other services or in-app purchases.
+
+4. Regional differences: None, except that the ad consent form appears only where required (e.g. EEA/UK).
+
+5. Regulated content / third-party material: The game is not in a regulated industry. All graphics and sounds are original (generated in code). The 3D engine three.js is used under the MIT License.
+```
 
 入力が終わったら「審査用に追加」→「審査へ提出」。
 
@@ -174,15 +177,30 @@ Google の「Apple の App Store のデータ開示要件への準備」（AdMob
 
 ---
 
-## 8. 自動化（2回目以降を GitHub Actions に任せる場合）
+## 8. TestFlight への自動アップロード（2回目以降を GitHub Actions に任せる）
 
-push するだけで GitHub Actions（GitHub の Mac 環境）がビルドし、TestFlight にアップロードできるようにする準備は、techgymjp/jet-fighter の `docs/IOS_BUILD.md` の 7 章と同じです。
-API キー（.p8）と配布用の証明書（.p12）は JET STRIKE で作ったものを使い回せますが、Secrets はリポジトリごとなので、**toruio にも同じ 5 つ**（`IOS_DIST_CERT_P12_BASE64` / `IOS_DIST_CERT_PASSWORD` / `ASC_KEY_ID` / `ASC_ISSUER_ID` / `ASC_KEY_P8_BASE64`）を
-https://github.com/techgymjp/toruio/settings/secrets/actions に登録します。登録したら Claude Code に「iOS の自動アップロードのワークフローを作って」と頼みます。
+`.github/workflows/ios-release.yml` を入れてあります（techgymjp/shutoko と同じ。2026-10 に shutoko で TestFlight へのアップロードまで確認済み）。
+下の Secrets を登録すると、既定のブランチに push するたびに次のことを自動で行います。登録するまでは何もしません。
+
+- 本番広告（`ios:release` と同じ）でビルドする。ビルド番号は **100 + 実行回数**（Mac から手でアップロードする 1、2、… と重ならない）
+- 配布用の証明書と API キーで、App Store 配布用のプロファイル（`jp.techgym.toruio AppStore CI`）を作る／取ってくる（`scripts/ios_profile.py`。Bundle ID が Apple Developer に登録済みであること）
+- Archive して App Store Connect（TestFlight）にアップロードする。審査への提出は、これまでどおり App Store Connect で行う
+
+**Secrets**（作り方は techgymjp/jet-fighter の `docs/IOS_BUILD.md` の 7 章。API キー（.p8）と証明書（.p12）は JET STRIKE・首都高グランプリで作ったものを使い回せる）
+
+Secrets はリポジトリごとなので、toruio にも次の 5 つを https://github.com/techgymjp/toruio/settings/secrets/actions に登録します。
+
+| 名前 | 内容 |
+| --- | --- |
+| `IOS_DIST_CERT_P12_BASE64` | 配布用の証明書（.p12）を変換した文字列（`base64 -i 証明書.p12 \| tr -d '\n' \| pbcopy`） |
+| `IOS_DIST_CERT_PASSWORD` | .p12 を書き出したときのパスワード |
+| `ASC_KEY_ID` | App Store Connect の API キーのキー ID |
+| `ASC_ISSUER_ID` | Issuer ID |
+| `ASC_KEY_P8_BASE64` | API キー（.p8）を変換した文字列（`base64 -i AuthKey_XXXXXXXXXX.p8 \| tr -d '\n' \| pbcopy`） |
 
 **注意**：証明書（.p12）、そのパスワード、API キー（.p8）は、チャット・AI へのアップロード・リポジトリへのコミットで**絶対に共有しない**でください。
 
-いまある `.github/workflows/ios.yml` は、push のたびに「シミュレーター向けに署名なしでビルドできるか」だけを確認するものです（アップロードはしない）。
+`.github/workflows/ios.yml` は、push のたびに「シミュレーター向けに署名なしでビルドできるか」だけを確認するものです（Secrets 不要）。
 
 ---
 
