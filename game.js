@@ -1496,7 +1496,8 @@
   I18N.onChange(() => { if (!shareEl.hidden) prepareShare(); });
   I18N.apply();
   $id('helpBtn').addEventListener('click', () => { audio(); setHelp(true); });
-  const titleBtnsEl = $id('titleBtns'), helpBtnsEl = $id('helpBtns'), legalEl = $id('legal');
+  const titleBtnsEl = $id('titleBtns'), helpBtnsEl = $id('helpBtns'), legalEl = $id('legal'), storeEl = $id('storeLink');
+  for (const ev of ['pointerdown', 'pointerup']) storeEl.addEventListener(ev, (e) => e.stopPropagation());
   $id('playBtn').addEventListener('click', () => { if (state.phase === 'title') withAd(startGame); });
   $id('helpPlay').addEventListener('click', () => { if (state.phase === 'title') withAd(startGame); });
   $id('helpBack').addEventListener('click', () => { audio(); if (state.phase === 'title') closeHelp(); });
@@ -1509,6 +1510,9 @@
     const top = state.phase === 'title' && !state.help, help = state.phase === 'title' && !!state.help;
     if (top === langEl.hidden) { langEl.hidden = !top; titleBtnsEl.hidden = !top; legalEl.hidden = !top; }
     if (help === helpBtnsEl.hidden) helpBtnsEl.hidden = !help;
+    // Web 版だけ、トップ画面に Google Play のアプリへのリンクを出す(アプリの中では出さない)
+    const store = top && !NATIVE;
+    if (store === storeEl.hidden) storeEl.hidden = !store;
   }
   // バナー広告はトップ・遊び方・ポーズ・結果画面だけ(プレイ中は操作ボタンと重なるので出さない)
   function updateBanner() {

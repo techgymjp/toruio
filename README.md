@@ -110,6 +110,7 @@ Vercel では `vercel.json` の指定で `npm run build` が `www/` を作り、
 [Capacitor](https://capacitorjs.com/) でゲームのファイルをアプリに同梱し、Android アプリにしています(オフラインで遊べます)。
 構成は techgymjp/jet-fighter の `docs/ANDROID_PORTING.md`(techgymjp/center-fly と同じ)です。
 
+- Google Play: https://play.google.com/store/apps/details?id=jp.techgym.toruio (Web 版のトップ画面にもリンクを出す。アプリの中では出さない)
 - パッケージ名: `jp.techgym.toruio`
 - アプリ名: 端末の言語が日本語なら「盗塁王」、それ以外は「Steal King」
 - 横画面固定・全画面・プレイ中は画面を消さない
