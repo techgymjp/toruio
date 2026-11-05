@@ -1510,9 +1510,10 @@
     const top = state.phase === 'title' && !state.help, help = state.phase === 'title' && !!state.help;
     if (top === langEl.hidden) { langEl.hidden = !top; titleBtnsEl.hidden = !top; legalEl.hidden = !top; }
     if (help === helpBtnsEl.hidden) helpBtnsEl.hidden = !help;
-    // Web 版だけ、トップ画面に Google Play のアプリへのリンクを出す(アプリの中では出さない)
-    const store = top && !NATIVE;
+    // Web 版だけ、トップ・遊び方の画面に Google Play のアプリへのリンクを出す(アプリの中では出さない)
+    const store = (top || help) && !NATIVE;
     if (store === storeEl.hidden) storeEl.hidden = !store;
+    storeEl.classList.toggle('onHelp', help);
   }
   // バナー広告はトップ・遊び方・ポーズ・結果画面だけ(プレイ中は操作ボタンと重なるので出さない)
   function updateBanner() {

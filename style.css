@@ -198,49 +198,33 @@ html, body {
   transform: translateY(2px);
 }
 
-/* Web 版のタイトル画面: Google Play のアプリへのリンク */
+/* Web 版のトップ・遊び方の画面: Google Play のアプリへのテキストリンク */
 #storeLink {
   position: absolute;
   left: 50%;
-  top: 71%;
+  top: 72%;
   transform: translateX(-50%);
   z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 18px 6px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.75);
-  color: #fff;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #cfe8ff;
   font-family: sans-serif;
-  text-decoration: none;
-  line-height: 1.1;
+  font-weight: bold;
+  font-size: clamp(14px, 3.4vh, 18px);
+  white-space: nowrap;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* 遊び方の画面では「プレイボール」「もどる」の下 */
+#storeLink.onHelp {
+  top: auto;
+  bottom: 9%;
 }
 
 #storeLink[hidden] {
   display: none;
-}
-
-#storeLink small {
-  display: block;
-  font-size: clamp(10px, 2.2vh, 12px);
-  opacity: 0.85;
-}
-
-#storeLink b {
-  display: block;
-  font-size: clamp(15px, 3.6vh, 20px);
-}
-
-/* Google Play の三角形 */
-#storeLink .playIcon {
-  width: 0;
-  height: 0;
-  border-top: 12px solid transparent;
-  border-bottom: 12px solid transparent;
-  border-left: 20px solid #34a853;
-  filter: drop-shadow(-3px 0 0 #4285f4) drop-shadow(0 3px 0 #fbbc04);
 }
 
 /* タイトル画面の下: バージョン・プライバシーポリシー・広告の設定 */
@@ -409,5 +393,9 @@ html, body {
 
   #helpBtns {
     bottom: 17%;
+  }
+
+  #storeLink.onHelp {
+    bottom: 3%;
   }
 }
