@@ -204,6 +204,16 @@ Secrets はリポジトリごとなので、toruio にも次の 5 つを https:/
 
 ---
 
+## Web 版だけの部分をアプリに入れない（Guideline 5.6 対策）
+
+ちゃぶ台返しリメンバー（techgymjp/chabudai）の iOS 版が「Guideline 5.6 - Developer Code of Conduct」（審査中に隠した機能がある）でリジェクトされた。
+Web 版の Google Play へのリンクと、それをアプリで隠す処理がバンドルに入っていたのが原因と考えられる。
+
+- Web 版だけの部分は、HTML では `<!-- web-only -->` … `<!-- /web-only -->`、JS では `// web-only:start` … `// web-only:end` で囲む
+- アプリ用のビルド（`npm run build:app`。`ios:sync` / `ios:release` / `android:sync` と GitHub Actions が使う）では、この範囲を取り除き、`play.google.com` などが残っていたらビルドを止める
+- 端末・日付・地域などで出し分ける機能はアプリに入れない（入れる場合は審査へのメモで説明する）
+- 審査で 5.6 を指摘されたら、新しいビルドに差し替え、App Review への返信で「Web 版用のリンクと隠す処理がバンドルに入っていたので取り除いた。審査中と審査後で機能は同じ」と説明し、実機の画面録画を添付する
+
 ## つまずきやすいところ
 
 | 症状 | 対処 |

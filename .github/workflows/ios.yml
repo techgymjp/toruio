@@ -39,7 +39,7 @@ jobs:
 
       - name: Copy web assets into the iOS project
         run: |
-          npm run build
+          npm run build:app
           npx cap sync ios
 
       # bash は pipefail で動くので、xcodebuild が失敗すればこのステップも失敗する

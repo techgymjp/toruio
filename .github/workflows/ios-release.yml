@@ -63,7 +63,7 @@ jobs:
       - name: Copy web assets into the iOS project (production ads)
         if: env.HAS_ASC == 'true'
         run: |
-          ADMOB_MODE=production npm run build
+          ADMOB_MODE=production npm run build:app
           npx cap sync ios
 
       - name: Install the distribution certificate and the API key

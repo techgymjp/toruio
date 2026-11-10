@@ -1496,8 +1496,17 @@
   I18N.onChange(() => { if (!shareEl.hidden) prepareShare(); });
   I18N.apply();
   $id('helpBtn').addEventListener('click', () => { audio(); setHelp(true); });
-  const titleBtnsEl = $id('titleBtns'), helpBtnsEl = $id('helpBtns'), legalEl = $id('legal'), storeEl = $id('storeLink');
+  const titleBtnsEl = $id('titleBtns'), helpBtnsEl = $id('helpBtns'), legalEl = $id('legal');
+  // web-only:start
+  // Web 版だけ、トップ・遊び方の画面に Google Play のアプリへのリンクを出す。
+  // アプリ用のビルド(npm run build:app)では、この範囲を丸ごと取り除く(scripts/build-web.js)
+  const storeEl = $id('storeLink');
   for (const ev of ['pointerdown', 'pointerup']) storeEl.addEventListener(ev, (e) => e.stopPropagation());
+  function updateStoreLink(show, onHelp) {
+    if (show === storeEl.hidden) storeEl.hidden = !show;
+    storeEl.classList.toggle('onHelp', onHelp);
+  }
+  // web-only:end
   $id('playBtn').addEventListener('click', () => { if (state.phase === 'title') withAd(startGame); });
   $id('helpPlay').addEventListener('click', () => { if (state.phase === 'title') withAd(startGame); });
   $id('helpBack').addEventListener('click', () => { audio(); if (state.phase === 'title') closeHelp(); });
@@ -1510,10 +1519,9 @@
     const top = state.phase === 'title' && !state.help, help = state.phase === 'title' && !!state.help;
     if (top === langEl.hidden) { langEl.hidden = !top; titleBtnsEl.hidden = !top; legalEl.hidden = !top; }
     if (help === helpBtnsEl.hidden) helpBtnsEl.hidden = !help;
-    // Web 版だけ、トップ・遊び方の画面に Google Play のアプリへのリンクを出す(アプリの中では出さない)
-    const store = (top || help) && !NATIVE;
-    if (store === storeEl.hidden) storeEl.hidden = !store;
-    storeEl.classList.toggle('onHelp', help);
+    // web-only:start
+    updateStoreLink(top || help, help);
+    // web-only:end
   }
   // バナー広告はトップ・遊び方・ポーズ・結果画面だけ(プレイ中は操作ボタンと重なるので出さない)
   function updateBanner() {
@@ -1575,9 +1583,10 @@
   }
   requestAnimationFrame(frame);
 
-  // テスト・デバッグ用フック
-  const api = window.Toruio = {
-    hold: false,
+  const api = { hold: false };
+  // web-only:start
+  // テスト・撮影用のフック(ブラウザのコンソールから使う)。アプリ用のビルドでは取り除く
+  window.Toruio = Object.assign(api, {
     state, newGame, update, DT, TOTAL, BL,
     setBot(fn) { bot = fn; },
     // テスト用: 指定の塁から始める
@@ -1587,5 +1596,6 @@
       setupField(); placeRunner(); setPhase('ready');
     },
     tip, headPlan, feetPlan, slideReady, makeShareImage, shareText,
-  };
+  });
+  // web-only:end
 })();

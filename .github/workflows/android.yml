@@ -56,7 +56,7 @@ jobs:
 
       - name: Copy web assets into the Android project
         run: |
-          npm run build
+          npm run build:app
           npx cap sync android
 
       - name: Build debug APK
@@ -106,7 +106,7 @@ jobs:
       - name: Switch ads to production for the release build
         if: env.HAS_KEYSTORE == 'true'
         run: |
-          ADMOB_MODE=production npm run build
+          ADMOB_MODE=production npm run build:app
           npx cap copy android
 
       - name: Build signed release AAB (Google Play)
