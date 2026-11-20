@@ -26,7 +26,7 @@ window.Ads = (() => {
       // 本番の広告ユニット(AdMob の「目指せ盗塁王」iOS)。空の種類は本番ビルドでは出さない
       production: {
         interstitial: 'ca-app-pub-6411535997477460/7020076510',
-        rewarded: 'ca-app-pub-6411535997477460/1052941723',
+        rewarded: 'ca-app-pub-6411535997477460/9207256158',
         banner: 'ca-app-pub-6411535997477460/5651154521',
       },
     },
