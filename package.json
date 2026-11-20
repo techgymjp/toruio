@@ -1,6 +1,6 @@
 {
   "name": "toruio",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "目指せ盗塁王 代走で二盗・三盗・ホームスチールを狙う3D盗塁ゲーム（Web / Android / iOS）",
   "scripts": {
