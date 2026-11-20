@@ -81,6 +81,7 @@ window.I18N = (() => {
       'title.play': '▶ プレイボール', 'help.back': 'もどる',
       // web-only:start
       'store.get': '📱 Android アプリ（Google Play）',
+      'store.ios': '📱 iPhone アプリ（App Store）',
       // web-only:end
       'legal.privacy': 'プライバシーポリシー', 'legal.adSettings': '広告の設定', 'url.privacy': 'https://techgym.jp/privacy-policy/',
       'redo.watch': '▶ 広告を見てこの盗塁をやり直す',
@@ -179,6 +180,7 @@ window.I18N = (() => {
       'title.play': '▶ Play ball', 'help.back': 'Back',
       // web-only:start
       'store.get': '📱 Android app (Google Play)',
+      'store.ios': '📱 iPhone app (App Store)',
       // web-only:end
       'legal.privacy': 'Privacy Policy', 'legal.adSettings': 'Ad settings', 'url.privacy': 'https://techgym.jp/privacy-policy-en/',
       'redo.watch': '▶ Watch an ad to retry this steal',

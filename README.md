@@ -110,7 +110,8 @@ Vercel では `vercel.json` の指定で `npm run build` が `www/` を作り、
 [Capacitor](https://capacitorjs.com/) でゲームのファイルをアプリに同梱し、Android アプリにしています(オフラインで遊べます)。
 構成は techgymjp/jet-fighter の `docs/ANDROID_PORTING.md`(techgymjp/center-fly と同じ)です。
 
-- Google Play: https://play.google.com/store/apps/details?id=jp.techgym.toruio (Web 版のトップ・遊び方の画面にテキストリンクを出す)
+- Google Play: https://play.google.com/store/apps/details?id=jp.techgym.toruio / App Store: https://apps.apple.com/jp/app/id6827864462
+  (Web 版のトップ・遊び方の画面に、2 つ並べてテキストリンクを出す)
 - Web 版だけの部分(Google Play へのリンク、テスト・撮影用のフック `window.Toruio`)は `web-only` の目印で囲み、アプリ用のビルド `npm run build:app` で取り除く
   (iOS の審査 Guideline 5.6 対策。Vercel の Web 版は従来どおり `npm run build`)
 - パッケージ名: `jp.techgym.toruio`

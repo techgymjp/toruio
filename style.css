@@ -198,20 +198,25 @@ html, body {
   transform: translateY(2px);
 }
 
-/* Web 版のトップ・遊び方の画面: Google Play のアプリへのテキストリンク */
+/* Web 版のトップ・遊び方の画面: Google Play・App Store のアプリへのテキストリンク(横に並べる) */
 #storeLink {
   position: absolute;
   left: 50%;
   top: 72%;
   transform: translateX(-50%);
   z-index: 2;
+  display: flex;
+  gap: 10px;
+}
+
+#storeLink a {
   padding: 6px 14px;
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.6);
   color: #cfe8ff;
   font-family: sans-serif;
   font-weight: bold;
-  font-size: clamp(14px, 3.4vh, 18px);
+  font-size: clamp(13px, 3.2vh, 18px);
   white-space: nowrap;
   text-decoration: underline;
   text-underline-offset: 3px;

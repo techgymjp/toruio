@@ -1498,7 +1498,7 @@
   $id('helpBtn').addEventListener('click', () => { audio(); setHelp(true); });
   const titleBtnsEl = $id('titleBtns'), helpBtnsEl = $id('helpBtns'), legalEl = $id('legal');
   // web-only:start
-  // Web 版だけ、トップ・遊び方の画面に Google Play のアプリへのリンクを出す。
+  // Web 版だけ、トップ・遊び方の画面に Google Play・App Store のアプリへのリンクを出す。
   // アプリ用のビルド(npm run build:app)では、この範囲を丸ごと取り除く(scripts/build-web.js)
   const storeEl = $id('storeLink');
   for (const ev of ['pointerdown', 'pointerup']) storeEl.addEventListener(ev, (e) => e.stopPropagation());
